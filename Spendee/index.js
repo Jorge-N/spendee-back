@@ -1,30 +1,29 @@
-import express from 'express';
-import { PrismaClient } from '@prisma/client';
-import { validateToken } from './middleware/validateToken.js';
+import express from "express"
+import { PrismaClient } from "@prisma/client"
+import { validateToken } from "./middleware/validateToken.js"
 
-const app = express();
-const prisma = new PrismaClient();
+const app = express()
+const prisma = new PrismaClient()
 
-app.use(express.json());
-
+app.use(express.json())
 
 // JWT validation moved to middleware/validateToken.js
 
 app.get("/", (req, res) => {
-  res.send("API de Gestión de Gastos");
-});
+  res.send("API de Gestión de Gastos")
+})
 
 // Endpoint de prueba para debug del JWT
 app.get("/test-jwt", validateToken, (req, res) => {
   res.json({
     message: "JWT válido!",
-    usuario: req.usuario
-  });
-});
+    usuario: req.usuario,
+  })
+})
 
 // Ruta protegida para crear un gasto
 app.post("/gasto", validateToken, async (req, res) => {
-  const { userId, gasto, montoAnterior } = req.body;
+  const { userId, gasto, montoAnterior } = req.body
   try {
     const nuevoGasto = await prisma.gasto.create({
       data: {
@@ -42,12 +41,12 @@ app.post("/gasto", validateToken, async (req, res) => {
 
 // Ruta para obtener todos los gastos
 app.get("/gasto", validateToken, async (req, res) => {
-  const gastos = await prisma.gasto.findMany();
-  res.json(gastos);
-});
+  const gastos = await prisma.gasto.findMany()
+  res.json(gastos)
+})
 
 app.post("/ingreso", validateToken, async (req, res) => {
-  const { userId, ingreso, montoAnterior } = req.body;
+  const { userId, ingreso, montoAnterior } = req.body
   try {
     const nuevoIngreso = await prisma.ingreso.create({
       data: {
@@ -56,8 +55,8 @@ app.post("/ingreso", validateToken, async (req, res) => {
         montoAnterior,
         fecha: new Date(),
       },
-    });
-    res.status(201).json(nuevoIngreso);
+    })
+    res.status(201).json(nuevoIngreso)
   } catch (error) {
     res.status(400).json({ error: error.message })
   }
@@ -65,12 +64,12 @@ app.post("/ingreso", validateToken, async (req, res) => {
 
 // Ruta para obtener todos los ingresos
 app.get("/ingreso", validateToken, async (req, res) => {
-  const ingresos = await prisma.ingreso.findMany();
-  res.json(ingresos);
-});
+  const ingresos = await prisma.ingreso.findMany()
+  res.json(ingresos)
+})
 
 app.get("/balance/:userId", validateToken, async (req, res) => {
-  const { userId } = req.params;
+  const { userId } = req.params
   try {
     const gastos = await prisma.gasto.findMany({
       where: { usuarioId: userId },
@@ -81,22 +80,22 @@ app.get("/balance/:userId", validateToken, async (req, res) => {
     })
     const sumaIngresos = ingresos.reduce(
       (total, ingreso) => total + ingreso.ingreso,
-      0
+      0,
     )
     const balance = sumaIngresos - sumaGastos
     res.json({ balance, sumaIngresos, sumaGastos })
   } catch (error) {
     res.status(400).json({ error: error.message })
   }
-});
+})
 
 app.get("/categories", async (req, res) => {
-  const categories = await prisma.CategoriasDefault.findMany();
-  res.json(categories);
-});
+  const categories = await prisma.CategoriasDefault.findMany()
+  res.json(categories)
+})
 
 app.post("/customCategory", validateToken, async (req, res) => {
-  const {nombre, icono, color, descripcion } = req.body;
+  const { nombre, icono, color, descripcion } = req.body
   try {
     const nuevaCategoria = await prisma.customCategories.create({
       data: {
@@ -105,34 +104,34 @@ app.post("/customCategory", validateToken, async (req, res) => {
         color,
         descripcion,
       },
-    });
-    res.status(201).json(nuevaCategoria);
+    })
+    res.status(201).json(nuevaCategoria)
   } catch (error) {
     res.status(400).json({ error: error.message })
   }
-});
+})
 
 // Ruta para obtener todas las categorías personalizadas
 app.get("/customCategories", validateToken, async (req, res) => {
-  const categorias = await prisma.customCategories.findMany();
-  res.json(categorias);
-});
+  const categorias = await prisma.customCategories.findMany()
+  res.json(categorias)
+})
 
 //ruta para obtener todos los gastos de un usuario por categoría
 //recibe user y categoryId por query params
 app.post("/gastosPorCategoria", validateToken, async (req, res) => {
-  const { userId, categoryId } = req.body;
+  const { userId, categoryId } = req.body
   try {
     const gastos = await prisma.gasto.findMany({
       where: {
         usuarioId: userId,
         categoriaId: parseInt(categoryId),
       },
-    });
-    res.json(gastos);
+    })
+    res.json(gastos)
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: error.message })
   }
-});
+})
 
 export default app
