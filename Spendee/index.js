@@ -89,16 +89,13 @@ app.get("/balance/:userId", validateToken, async (req, res) => {
   }
 })
 
-app.get("/categories", async (req, res) => {
-  const categories = await prisma.CategoriasDefault.findMany()
-  res.json(categories)
-})
-
 app.post("/customCategory", validateToken, async (req, res) => {
   const { nombre, icono, color, descripcion } = req.body
   try {
+    const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
     const nuevaCategoria = await prisma.customCategories.create({
       data: {
+        usuarioId: uid,
         nombre,
         icono,
         color,
@@ -111,10 +108,74 @@ app.post("/customCategory", validateToken, async (req, res) => {
   }
 })
 
-// Ruta para obtener todas las categorías personalizadas
-app.get("/customCategories", validateToken, async (req, res) => {
-  const categorias = await prisma.customCategories.findMany()
-  res.json(categorias)
+// Ruta que devuelve todas las categorías (por defecto + custom del usuario)
+// - Las categorías por defecto no son editables (editable: false)
+// - Las categorías custom del usuario sí lo son (editable: true)
+// Esta ruta requiere JWT para poder obtener las categorías custom del usuario.
+app.get("/categories", validateToken, async (req, res) => {
+  try {
+    // Obtener categorías por defecto (globales)
+    const defaultCategories = await prisma.categoriasDefault.findMany()
+
+    // Extraer user id desde el token o query param - soportamos varias claves comunes
+    const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid || req.query.userId
+
+    // Obtener categorias custom del usuario (si existe uid)
+    const customCategories = uid
+      ? await prisma.customCategories.findMany({ where: { usuarioId: uid } })
+      : []
+
+    // Calcular sumas de gastos por categoriaId para el usuario (una sola consulta)
+    let sumsByCategoria = new Map()
+    console.log("User ID for category sums:", uid)
+    if (uid) {
+      const sums = await prisma.gasto.groupBy({
+        by: ["categoriaId"],
+        where: {
+          usuarioId: uid,
+          categoriaId: { not: null },
+        },
+        _sum: {
+          gasto: true,
+        },
+      })
+      console.log("Sums by categoriaId:", sums)
+      for (const s of sums) {
+        // s.categoriaId puede ser null, lo ignoramos
+        sumsByCategoria.set(s.categoriaId, s._sum?.gasto ?? 0)
+      }
+    }
+
+    // Normalizar y añadir flag editable + totalGastos
+    const normalizedDefaults = defaultCategories.map((c) => ({
+      id: c.id,
+      categoria: c.categoria,
+      icono: c.icono,
+      color: c.color,
+      descripcion: c.descripcion,
+      editable: false,
+      source: 'default',
+      totalGastos: sumsByCategoria.get(c.id) ?? 0,
+    }))
+
+    const normalizedCustom = customCategories.map((c) => ({
+      id: c.id,
+      categoria: c.categoria || c.nombre || null,
+      icono: c.icono,
+      color: c.color,
+      descripcion: c.descripcion,
+      editable: true,
+      source: 'custom',
+      // Actualmente los gastos están asociados solo a CategoriasDefault (categoriaId FK),
+      // por eso aquí devolvemos 0. Si en el futuro enlazas gastos con customCategories,
+      // será necesario actualizar este cálculo.
+      totalGastos: 0,
+    }))
+
+    res.json([...normalizedDefaults, ...normalizedCustom])
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
 })
 
 //ruta para obtener todos los gastos de un usuario por categoría
