@@ -90,13 +90,13 @@ app.get("/balance/:userId", validateToken, async (req, res) => {
 })
 
 app.post("/customCategory", validateToken, async (req, res) => {
-  const { nombre, icono, color, descripcion } = req.body
+  const { categoria, icono, color, descripcion } = req.body
   try {
     const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
     const nuevaCategoria = await prisma.customCategories.create({
       data: {
         usuarioId: uid,
-        nombre,
+        categoria,
         icono,
         color,
         descripcion,
@@ -118,7 +118,11 @@ app.get("/categories", validateToken, async (req, res) => {
     const defaultCategories = await prisma.categoriasDefault.findMany()
 
     // Extraer user id desde el token o query param - soportamos varias claves comunes
-    const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid || req.query.userId
+    const uid =
+      req.usuario?.sub ||
+      req.usuario?.user_id ||
+      req.usuario?.uid ||
+      req.query.userId
 
     // Obtener categorias custom del usuario (si existe uid)
     const customCategories = uid
@@ -154,7 +158,7 @@ app.get("/categories", validateToken, async (req, res) => {
       color: c.color,
       descripcion: c.descripcion,
       editable: false,
-      source: 'default',
+      source: "default",
       totalGastos: sumsByCategoria.get(c.id) ?? 0,
     }))
 
@@ -165,7 +169,7 @@ app.get("/categories", validateToken, async (req, res) => {
       color: c.color,
       descripcion: c.descripcion,
       editable: true,
-      source: 'custom',
+      source: "custom",
       // Actualmente los gastos están asociados solo a CategoriasDefault (categoriaId FK),
       // por eso aquí devolvemos 0. Si en el futuro enlazas gastos con customCategories,
       // será necesario actualizar este cálculo.
