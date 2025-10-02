@@ -199,4 +199,40 @@ app.post("/gastosPorCategoria", validateToken, async (req, res) => {
   }
 })
 
+app.delete("/deleteCategory/:id", validateToken, async (req, res) => {
+  console.log("Back")
+  const { id } = req.params
+  try {
+    const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+
+    const category = await prisma.customCategories.findUnique({
+      where: { id: Number(id) },
+    })
+
+    if (!category) {
+      return res.status(404).json({ message: "Categoría no encontrada" })
+    }
+
+    if (category.usuarioId !== uid) {
+      return res
+        .status(403)
+        .json({ message: "No tenés permiso para eliminar esta categoría" })
+    }
+
+    const deletedCategory = await prisma.customCategories.delete({
+      where: { id: Number(id) },
+    })
+
+    res.status(200).json({
+      message: "Categoría eliminada correctamente",
+      deletedCategory,
+    })
+  } catch (error) {
+    console.error("Error eliminando categoría:", error)
+    res
+      .status(500)
+      .json({ message: "Error eliminando categoría", error: error.message })
+  }
+})
+
 export default app
