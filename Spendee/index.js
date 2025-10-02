@@ -160,9 +160,10 @@ app.get("/categories", validateToken, async (req, res) => {
 
     // Calcular sumas de gastos por categoriaId para el usuario (una sola consulta)
     let sumsByCategoria = new Map()
+    let sumByCustom = new Map()
     console.log("User ID for category sums:", uid)
     if (uid) {
-      const sums = await prisma.gasto.groupBy({
+      const sumsDefault = await prisma.gasto.groupBy({
         by: ["categoriaId"],
         where: {
           usuarioId: uid,
@@ -172,10 +173,23 @@ app.get("/categories", validateToken, async (req, res) => {
           gasto: true,
         },
       })
-      console.log("Sums by categoriaId:", sums)
-      for (const s of sums) {
-        // s.categoriaId puede ser null, lo ignoramos
+      const sumsCustom = await prisma.gasto.groupBy({
+        by: ["customCategoriaId"],
+        where: {
+          usuarioId: uid,
+          customCategoriaId: { not: null },
+        },
+        _sum: {
+          gasto: true,
+        },
+      })
+      console.log("Sums by customCategoriaId:", sumsCustom)
+      console.log("Sums by categoriaId:", sumsDefault)
+      for (const s of sumsDefault) {
         sumsByCategoria.set(s.categoriaId, s._sum?.gasto ?? 0)
+      }
+      for (const s of sumsCustom) {
+        sumByCustom.set(s.customCategoriaId, s._sum?.gasto ?? 0)
       }
     }
 
@@ -202,7 +216,7 @@ app.get("/categories", validateToken, async (req, res) => {
       // Actualmente los gastos están asociados solo a CategoriasDefault (categoriaId FK),
       // por eso aquí devolvemos 0. Si en el futuro enlazas gastos con customCategories,
       // será necesario actualizar este cálculo.
-      totalGastos: 0,
+      totalGastos: sumByCustom.get(c.id) ?? 0,
     }))
 
     res.json([...normalizedDefaults, ...normalizedCustom])
