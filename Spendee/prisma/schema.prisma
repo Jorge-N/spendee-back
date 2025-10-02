@@ -14,15 +14,13 @@ datasource db {
 }
 
 model Gasto {
-  id                Int                @id @default(autoincrement())
-  usuarioId         String
-  gasto             Float
-  montoAnterior     Float
-  fecha             DateTime
-  categoriaId       Int?
-  categoria         CategoriasDefault? @relation(fields: [categoriaId], references: [id])
-  customCategoriaId Int?
-  customCategoria   customCategories?  @relation(fields: [customCategoriaId], references: [id])
+  id            Int        @id @default(autoincrement())
+  usuarioId     String
+  gasto         Float
+  montoAnterior Float
+  fecha         DateTime
+  categoriaId   Int
+  categoria     Categorias @relation(fields: [categoriaId], references: [id])
 }
 
 model Ingreso {
@@ -33,19 +31,10 @@ model Ingreso {
   fecha         DateTime
 }
 
-model CategoriasDefault {
-  id          Int     @id @default(autoincrement())
-  categoria   String
-  icono       String
-  color       String
-  descripcion String
-  gastos      Gasto[]
-}
-
-model customCategories {
+model Categorias {
   id          Int     @id @default(autoincrement())
   usuarioId   String
-  categoria   String
+  nombre      String
   icono       String
   color       String
   descripcion String

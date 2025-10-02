@@ -1,25 +1,69 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
 
 const defaultCategories = [
-  { categoria: 'Transporte', icono: 'bus', color: '#FF5733', descripcion: 'Transporte público y privado' },
-  { categoria: 'Comida', icono: 'utensils', color: '#33C3FF', descripcion: 'Alimentos y restaurantes' },
-  { categoria: 'Hogar', icono: 'home', color: '#8E44AD', descripcion: 'Gastos del hogar y servicios' },
-  { categoria: 'Salud', icono: 'heart', color: '#E74C3C', descripcion: 'Medicinas y consultas' },
-  { categoria: 'Entretenimiento', icono: 'gamepad', color: '#F1C40F', descripcion: 'Cine, ocio y suscripciones' },
-  { categoria: 'Educación', icono: 'book', color: '#2ECC71', descripcion: 'Cursos, libros y formación' },
-  { categoria: 'Otros', icono: 'ellipsis-h', color: '#95A5A6', descripcion: 'Gastos varios' },
+  {
+    usuarioId: "0",
+    nombre: "Transporte",
+    icono: "bus",
+    color: "#FF5733",
+    descripcion: "Transporte público y privado",
+  },
+  {
+    usuarioId: "0",
+    nombre: "Comida",
+    icono: "utensils",
+    color: "#33C3FF",
+    descripcion: "Alimentos y restaurantes",
+  },
+  {
+    usuarioId: "0",
+    nombre: "Hogar",
+    icono: "home",
+    color: "#8E44AD",
+    descripcion: "Gastos del hogar y servicios",
+  },
+  {
+    usuarioId: "0",
+    nombre: "Salud",
+    icono: "heart",
+    color: "#E74C3C",
+    descripcion: "Medicinas y consultas",
+  },
+  {
+    usuarioId: "0",
+    nombre: "Entretenimiento",
+    icono: "gamepad",
+    color: "#F1C40F",
+    descripcion: "Cine, ocio y suscripciones",
+  },
+  {
+    usuarioId: "0",
+    nombre: "Educación",
+    icono: "book",
+    color: "#2ECC71",
+    descripcion: "Cursos, libros y formación",
+  },
+  {
+    usuarioId: "0",
+    nombre: "Otros",
+    icono: "ellipsis-h",
+    color: "#95A5A6",
+    descripcion: "Gastos varios",
+  },
 ]
 
 async function main() {
   for (const cat of defaultCategories) {
-    const exists = await prisma.categoriasDefault.findFirst({ where: { categoria: cat.categoria } })
+    const exists = await prisma.categorias.findFirst({
+      where: { nombre: cat.nombre },
+    })
     if (!exists) {
-      await prisma.categoriasDefault.create({ data: cat })
-      console.log('Inserted', cat.categoria)
+      await prisma.categorias.create({ data: cat })
+      console.log("Inserted", cat.nombre)
     } else {
-      console.log('Already exists', cat.categoria)
+      console.log("Already exists", cat.nombre)
     }
   }
 }
