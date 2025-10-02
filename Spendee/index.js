@@ -228,4 +228,79 @@ app.post("/gastosPorCategoria", validateToken, async (req, res) => {
   }
 })
 
+app.delete("/deleteCategory/:id", validateToken, async (req, res) => {
+  console.log("Back")
+  const { id } = req.params
+  try {
+    const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+
+    const category = await prisma.customCategories.findUnique({
+      where: { id: Number(id) },
+    })
+
+    if (!category) {
+      return res.status(404).json({ message: "Categoría no encontrada" })
+    }
+
+    if (category.usuarioId !== uid) {
+      return res
+        .status(403)
+        .json({ message: "No tenés permiso para eliminar esta categoría" })
+    }
+
+    const deletedCategory = await prisma.customCategories.delete({
+      where: { id: Number(id) },
+    })
+
+    res.status(200).json({
+      message: "Categoría eliminada correctamente",
+      deletedCategory,
+    })
+  } catch (error) {
+    console.error("Error eliminando categoría:", error)
+    res
+      .status(500)
+      .json({ message: "Error eliminando categoría", error: error.message })
+  }
+})
+
+app.put("/modifyCategory/:id", validateToken, async (req, res) => {
+  console.log("Modificando categoría...")
+  const { id } = req.params
+  const { categoria, descripcion, icono, color } = req.body
+
+  try {
+    const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+    const categoriaExistente = await prisma.customCategories.findUnique({
+      where: { id: parseInt(id) },
+    })
+
+    if (!categoriaExistente) {
+      return res.status(404).json({ error: "Categoría no encontrada" })
+    }
+    if (categoriaExistente.usuarioId !== uid) {
+      return res
+        .status(403)
+        .json({ error: "No tenés permiso para modificar esta categoría" })
+    }
+    const categoriaActualizada = await prisma.customCategories.update({
+      where: { id: parseInt(id) },
+      data: {
+        categoria: categoria || categoriaExistente.categoria,
+        descripcion: descripcion || categoriaExistente.descripcion,
+        icono: icono || categoriaExistente.icono,
+        color: color || categoriaExistente.color,
+      },
+    })
+
+    res.json({
+      message: "Categoría modificada correctamente",
+      categoria: categoriaActualizada,
+    })
+  } catch (error) {
+    console.error("Error modificando categoría:", error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 export default app
