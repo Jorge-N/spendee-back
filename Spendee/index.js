@@ -23,7 +23,8 @@ app.get("/test-jwt", validateToken, (req, res) => {
 
 // Ruta protegida para crear un gasto
 app.post("/gasto", validateToken, async (req, res) => {
-  const { userId, gasto, montoAnterior } = req.body
+  const { userId, gasto, montoAnterior, categoriaId, customCategoriaId } =
+    req.body
   try {
     const nuevoGasto = await prisma.gasto.create({
       data: {
@@ -31,6 +32,8 @@ app.post("/gasto", validateToken, async (req, res) => {
         gasto,
         montoAnterior,
         fecha: new Date(),
+        customCategoriaId: customCategoriaId ? customCategoriaId : null,
+        categoriaId: categoriaId,
       },
     })
     res.status(201).json(nuevoGasto)
