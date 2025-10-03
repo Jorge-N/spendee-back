@@ -54,10 +54,6 @@ const defaultCategories = [
   },
 ]
 
-await prisma.$executeRawUnsafe(`
-    ALTER SEQUENCE "customCategories_id_seq" RESTART WITH 8;
-  `)
-
 async function main() {
   for (const cat of defaultCategories) {
     const exists = await prisma.categorias.findFirst({

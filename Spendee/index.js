@@ -157,7 +157,6 @@ app.get("/categories", validateToken, async (req, res) => {
         by: ["categoriaId"],
         where: {
           usuarioId: uid,
-          categoriaId: { not: null },
         },
         _sum: {
           gasto: true,
