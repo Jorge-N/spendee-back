@@ -4,43 +4,50 @@ const prisma = new PrismaClient()
 
 const defaultCategories = [
   {
-    categoria: "Transporte",
+    usuarioId: "0",
+    nombre: "Transporte",
     icono: "bus",
     color: "#FF5733",
     descripcion: "Transporte público y privado",
   },
   {
-    categoria: "Comida",
+    usuarioId: "0",
+    nombre: "Comida",
     icono: "utensils",
     color: "#33C3FF",
     descripcion: "Alimentos y restaurantes",
   },
   {
-    categoria: "Hogar",
+    usuarioId: "0",
+    nombre: "Hogar",
     icono: "home",
     color: "#8E44AD",
     descripcion: "Gastos del hogar y servicios",
   },
   {
-    categoria: "Salud",
+    usuarioId: "0",
+    nombre: "Salud",
     icono: "heart",
     color: "#E74C3C",
     descripcion: "Medicinas y consultas",
   },
   {
-    categoria: "Entretenimiento",
+    usuarioId: "0",
+    nombre: "Entretenimiento",
     icono: "gamepad",
     color: "#F1C40F",
     descripcion: "Cine, ocio y suscripciones",
   },
   {
-    categoria: "Educación",
+    usuarioId: "0",
+    nombre: "Educación",
     icono: "book",
     color: "#2ECC71",
     descripcion: "Cursos, libros y formación",
   },
   {
-    categoria: "Otros",
+    usuarioId: "0",
+    nombre: "Otros",
     icono: "ellipsis-h",
     color: "#95A5A6",
     descripcion: "Gastos varios",
@@ -53,14 +60,14 @@ await prisma.$executeRawUnsafe(`
 
 async function main() {
   for (const cat of defaultCategories) {
-    const exists = await prisma.categoriasDefault.findFirst({
-      where: { categoria: cat.categoria },
+    const exists = await prisma.categorias.findFirst({
+      where: { nombre: cat.nombre },
     })
     if (!exists) {
-      await prisma.categoriasDefault.create({ data: cat })
-      console.log("Inserted", cat.categoria)
+      await prisma.categorias.create({ data: cat })
+      console.log("Inserted", cat.nombre)
     } else {
-      console.log("Already exists", cat.categoria)
+      console.log("Already exists", cat.nombre)
     }
   }
 }

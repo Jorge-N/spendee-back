@@ -122,13 +122,13 @@ app.get("/balance/:userId", validateToken, async (req, res) => {
 })
 
 app.post("/customCategory", validateToken, async (req, res) => {
-  const { categoria, icono, color, descripcion } = req.body
+  const { nombre, icono, color, descripcion } = req.body
   try {
     const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
-    const nuevaCategoria = await prisma.customCategories.create({
+    const nuevaCategoria = await prisma.categorias.create({
       data: {
         usuarioId: uid,
-        categoria,
+        nombre,
         icono,
         color,
         descripcion,
@@ -140,33 +140,20 @@ app.post("/customCategory", validateToken, async (req, res) => {
   }
 })
 
-// Ruta que devuelve todas las categorías (por defecto + custom del usuario)
-// - Las categorías por defecto no son editables (editable: false)
-// - Las categorías custom del usuario sí lo son (editable: true)
-// Esta ruta requiere JWT para poder obtener las categorías custom del usuario.
 app.get("/categories", validateToken, async (req, res) => {
   try {
-    // Obtener categorías por defecto (globales)
-    const defaultCategories = await prisma.categoriasDefault.findMany()
-
-    // Extraer user id desde el token o query param - soportamos varias claves comunes
     const uid =
       req.usuario?.sub ||
       req.usuario?.user_id ||
       req.usuario?.uid ||
       req.query.userId
 
-    // Obtener categorias custom del usuario (si existe uid)
-    const customCategories = uid
-      ? await prisma.customCategories.findMany({ where: { usuarioId: uid } })
-      : []
-
-    // Calcular sumas de gastos por categoriaId para el usuario (una sola consulta)
-    let sumsByCategoria = new Map()
-    let sumByCustom = new Map()
-    console.log("User ID for category sums:", uid)
+    const categorias = await prisma.categorias.findMany({
+      where: { OR: [{ usuarioId: "0" }, { usuarioId: uid }] },
+    })
+    let sumGastos = new Map()
     if (uid) {
-      const sumsDefault = await prisma.gasto.groupBy({
+      const sums = await prisma.gasto.groupBy({
         by: ["categoriaId"],
         where: {
           usuarioId: uid,
@@ -176,53 +163,19 @@ app.get("/categories", validateToken, async (req, res) => {
           gasto: true,
         },
       })
-      const sumsCustom = await prisma.gasto.groupBy({
-        by: ["customCategoriaId"],
-        where: {
-          usuarioId: uid,
-          customCategoriaId: { not: null },
-        },
-        _sum: {
-          gasto: true,
-        },
-      })
-      console.log("Sums by customCategoriaId:", sumsCustom)
-      console.log("Sums by categoriaId:", sumsDefault)
-      for (const s of sumsDefault) {
-        sumsByCategoria.set(s.categoriaId, s._sum?.gasto ?? 0)
-      }
-      for (const s of sumsCustom) {
-        sumByCustom.set(s.customCategoriaId, s._sum?.gasto ?? 0)
+      for (const s of sums) {
+        sumGastos.set(s.categoriaId, s._sum?.gasto ?? 0)
       }
     }
-
-    // Normalizar y añadir flag editable + totalGastos
-    const normalizedDefaults = defaultCategories.map((c) => ({
+    const categoriasConGastos = categorias.map((c) => ({
       id: c.id,
-      categoria: c.categoria,
+      nombre: c.nombre,
       icono: c.icono,
       color: c.color,
       descripcion: c.descripcion,
-      editable: false,
-      source: "default",
-      totalGastos: sumsByCategoria.get(c.id) ?? 0,
+      totalGastos: sumGastos.get(c.id) || 0,
     }))
-
-    const normalizedCustom = customCategories.map((c) => ({
-      id: c.id,
-      categoria: c.categoria || c.nombre || null,
-      icono: c.icono,
-      color: c.color,
-      descripcion: c.descripcion,
-      editable: true,
-      source: "custom",
-      // Actualmente los gastos están asociados solo a CategoriasDefault (categoriaId FK),
-      // por eso aquí devolvemos 0. Si en el futuro enlazas gastos con customCategories,
-      // será necesario actualizar este cálculo.
-      totalGastos: sumByCustom.get(c.id) ?? 0,
-    }))
-
-    res.json([...normalizedDefaults, ...normalizedCustom])
+    res.json(categoriasConGastos)
   } catch (error) {
     res.status(400).json({ error: error.message })
   }
@@ -246,12 +199,11 @@ app.post("/gastosPorCategoria", validateToken, async (req, res) => {
 })
 
 app.delete("/deleteCategory/:id", validateToken, async (req, res) => {
-  console.log("Back")
   const { id } = req.params
   try {
     const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
 
-    const category = await prisma.customCategories.findUnique({
+    const category = await prisma.categorias.findUnique({
       where: { id: Number(id) },
     })
 
@@ -288,7 +240,7 @@ app.put("/modifyCategory/:id", validateToken, async (req, res) => {
 
   try {
     const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
-    const categoriaExistente = await prisma.customCategories.findUnique({
+    const categoriaExistente = await prisma.categorias.findUnique({
       where: { id: parseInt(id) },
     })
 
@@ -303,7 +255,7 @@ app.put("/modifyCategory/:id", validateToken, async (req, res) => {
     const categoriaActualizada = await prisma.customCategories.update({
       where: { id: parseInt(id) },
       data: {
-        categoria: categoria || categoriaExistente.categoria,
+        nombre: categoria || categoriaExistente.categoria,
         descripcion: descripcion || categoriaExistente.descripcion,
         icono: icono || categoriaExistente.icono,
         color: color || categoriaExistente.color,
