@@ -75,6 +75,55 @@ app.get("/gastoPorId/:id", validateToken, async (req, res) => {
   }
 })
 
+app.put("/moverGastosCategoria", validateToken, async (req, res) => {
+  const { categoriaOrigenId, categoriaDestinoId } = req.body
+  try {
+    const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+    console.log({ uid, categoriaOrigenId, categoriaDestinoId })
+    if (!categoriaOrigenId || !categoriaDestinoId) {
+      return res
+        .status(400)
+        .json({ error: "Debes indicar las categorías origen y destino." })
+    }
+    const [origen, destino] = await Promise.all([
+      prisma.categorias.findFirst({
+        where: { id: parseInt(categoriaOrigenId), usuarioId: uid },
+      }),
+      prisma.categorias.findFirst({
+        where: { id: parseInt(categoriaDestinoId) },
+      }),
+    ])
+    if (!origen) {
+      return res
+        .status(404)
+        .json({ error: "La categoría de origen no existe o no te pertenece." })
+    }
+    if (!destino) {
+      console.log("No existe la categoría destino")
+      return res
+        .status(404)
+        .json({ error: "La categoría de destino no existe o no te pertenece." })
+    }
+    const resultado = await prisma.gasto.updateMany({
+      where: {
+        usuarioId: uid,
+        categoriaId: parseInt(categoriaOrigenId),
+      },
+      data: {
+        categoriaId: parseInt(categoriaDestinoId),
+      },
+    })
+
+    res.status(200).json({
+      message: `Se movieron ${resultado.count} gastos de la categoría ${origen.nombre} a ${destino.nombre}.`,
+      cantidad: resultado.count,
+    })
+  } catch (error) {
+    console.error("Error moviendo gastos de categoría:", error)
+    res.status(500).json({ error: "" })
+  }
+})
+
 app.post("/ingreso", validateToken, async (req, res) => {
   const { userId, ingreso, montoAnterior } = req.body
   try {
@@ -252,7 +301,7 @@ app.delete("/deleteCategory/:id", validateToken, async (req, res) => {
         .json({ message: "No tenés permiso para eliminar esta categoría" })
     }
 
-    const deletedCategory = await prisma.customCategories.delete({
+    const deletedCategory = await prisma.categorias.delete({
       where: { id: Number(id) },
     })
 
