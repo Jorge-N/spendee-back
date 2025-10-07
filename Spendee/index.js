@@ -130,20 +130,29 @@ app.get("/ingreso/:userId", validateToken, async (req, res) => {
 app.get("/balance/:userId", validateToken, async (req, res) => {
   const { userId } = req.params
   try {
-    const gastos = await prisma.gasto.findMany({
+    const gastoSum = await prisma.gasto.aggregate({
       where: { usuarioId: userId },
+      _sum: { gasto: true },
     })
-    const sumaGastos = gastos.reduce((total, gasto) => total + gasto.gasto, 0)
-    const ingresos = await prisma.ingreso.findMany({
+
+    const ingresoSum = await prisma.ingreso.aggregate({
       where: { usuarioId: userId },
+      _sum: { ingreso: true },
     })
-    const sumaIngresos = ingresos.reduce(
-      (total, ingreso) => total + ingreso.ingreso,
-      0,
-    )
+
+    const sumaGastos = gastoSum._sum.gasto
+      ? parseFloat(gastoSum._sum.gasto.toString())
+      : 0
+    const sumaIngresos = ingresoSum._sum.ingreso
+      ? parseFloat(ingresoSum._sum.ingreso.toString())
+      : 0
+
     const balance = sumaIngresos - sumaGastos
+    console.log({ sumaIngresos, sumaGastos, balance })
+
     res.json({ balance, sumaIngresos, sumaGastos })
   } catch (error) {
+    console.error(error)
     res.status(400).json({ error: error.message })
   }
 })
