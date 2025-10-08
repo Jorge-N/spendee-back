@@ -75,6 +75,27 @@ app.get("/gastoPorId/:id", validateToken, async (req, res) => {
   }
 })
 
+//delete gasto by id
+app.delete("/gasto/:id", validateToken, async (req, res) => {
+  const id = parseInt(req.params.id)
+  if (isNaN(id)) {
+    return res.status(400).json({ error: "ID inválido" })
+  }
+
+  try {
+    const deletedExpense = await prisma.gasto.delete({
+      where: { id },
+    })
+    res
+      .status(200)
+      .json({ message: "Gasto eliminado correctamente", deletedExpense })
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+// Endpoint para mover gastos de una categoría a otra   
+
 app.put("/moverGastosCategoria", validateToken, async (req, res) => {
   const { categoriaOrigenId, categoriaDestinoId } = req.body
   try {
@@ -258,6 +279,7 @@ app.get("/categories", validateToken, async (req, res) => {
       color: c.color,
       descripcion: c.descripcion,
       totalGastos: sumGastos.get(c.id) || 0,
+      editable: c.editable,
     }))
     res.json(categoriasConGastos)
   } catch (error) {
