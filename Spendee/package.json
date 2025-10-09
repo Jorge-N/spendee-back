@@ -18,6 +18,5 @@
     "test": "jest --watchAll --coverage",
     "devStart": "nodemon server.js",
     "seed": "node prisma/seed.js"
-  },
-  "type": "module"
+  }
 }

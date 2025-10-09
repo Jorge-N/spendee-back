@@ -1,6 +1,6 @@
-import express from "express"
-import { PrismaClient } from "@prisma/client"
-import { validateToken } from "./middleware/validateToken.js"
+const express = require("express")
+const { PrismaClient } = require("@prisma/client")
+const validateToken = require("./middleware/validateToken.js")
 
 const app = express()
 const prisma = new PrismaClient()
@@ -356,4 +356,4 @@ app.put("/modifyCategory/:id", validateToken, async (req, res) => {
   }
 })
 
-export default app
+module.exports = app
