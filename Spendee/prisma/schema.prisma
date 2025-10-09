@@ -38,5 +38,6 @@ model Categorias {
   icono       String
   color       String
   descripcion String
+  editable    Boolean @default(true)
   gastos      Gasto[]
 }
