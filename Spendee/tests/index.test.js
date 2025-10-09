@@ -322,3 +322,41 @@ describe("GET /gasto/:userId", () => {
     expect(res.body).toEqual(gastosMock)
   })
 })
+
+describe("GET /ingreso/:userId", () => {
+  let prisma
+  beforeEach(() => {
+    prisma = new PrismaClient()
+  })
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+  it("Cuando no hay ingresos para el userId, la respuesta debe ser una lista vacía", async () => {
+    prisma.ingreso.findMany.mockResolvedValue([])
+    const res = await request(app).get("/ingreso/1")
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual([])
+  })
+  it("Cuando hay ingresos para el userId, la respuesta debe ser una lista con los ingresos", async () => {
+    const ingresosMock = [
+      {
+        id: 1,
+        usuarioId: 1,
+        ingreso: 100,
+        montoAnterior: 0,
+        fecha: String(new Date()),
+      },
+      {
+        id: 2,
+        usuarioId: 1,
+        ingreso: 200,
+        montoAnterior: 100,
+        fecha: String(new Date()),
+      },
+    ]
+    prisma.ingreso.findMany.mockResolvedValue(ingresosMock)
+    const res = await request(app).get("/ingreso/1")
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual(ingresosMock)
+  })
+})
