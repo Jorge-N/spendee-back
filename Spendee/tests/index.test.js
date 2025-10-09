@@ -2,8 +2,18 @@ const request = require("supertest")
 
 jest.mock("@prisma/client", () => {
   const mPrisma = {
-    gasto: { findMany: jest.fn(), create: jest.fn(), aggregate: jest.fn() },
-    ingreso: { findMany: jest.fn(), create: jest.fn(), aggregate: jest.fn() },
+    gasto: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+      aggregate: jest.fn(),
+      findUnique: jest.fn(),
+    },
+    ingreso: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+      aggregate: jest.fn(),
+      findUnique: jest.fn(),
+    },
   }
   return { PrismaClient: jest.fn(() => mPrisma) }
 })
@@ -358,5 +368,34 @@ describe("GET /ingreso/:userId", () => {
     const res = await request(app).get("/ingreso/1")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual(ingresosMock)
+  })
+})
+
+describe("GET /ingresoPorId/:id", () => {
+  let prisma
+  beforeEach(() => {
+    prisma = new PrismaClient()
+  })
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+  it("Cuando el ingreso con el id especificado no existe, la respuesta debe ser un error 404", async () => {
+    prisma.ingreso.findUnique.mockResolvedValue(null)
+    const res = await request(app).get("/ingresoPorId/999")
+    expect(res.statusCode).toBe(404)
+    expect(res.body).toEqual({ error: "Ingreso no encontrado" })
+  })
+  it("Cuando el ingreso con el id especificado existe, la respuesta debe ser el ingreso", async () => {
+    const ingresoMock = {
+      id: 1,
+      usuarioId: 1,
+      ingreso: 100,
+      montoAnterior: 0,
+      fecha: String(new Date()),
+    }
+    prisma.ingreso.findUnique.mockResolvedValue(ingresoMock)
+    const res = await request(app).get("/ingresoPorId/1")
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual(ingresoMock)
   })
 })
