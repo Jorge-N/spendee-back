@@ -7,12 +7,14 @@ jest.mock("@prisma/client", () => {
       create: jest.fn(),
       aggregate: jest.fn(),
       findUnique: jest.fn(),
+      delete: jest.fn(),
     },
     ingreso: {
       findMany: jest.fn(),
       create: jest.fn(),
       aggregate: jest.fn(),
       findUnique: jest.fn(),
+      delete: jest.fn(),
     },
   }
   return { PrismaClient: jest.fn(() => mPrisma) }
@@ -434,6 +436,34 @@ describe("GET /gastoPorId/:id", () => {
   })
   it("Cuando el id no es un número, la respuesta debe ser un error 400", async () => {
     const res = await request(app).get("/gastoPorId/abc")
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toEqual({ error: "ID inválido" })
+  })
+})
+
+describe("DELETE /gasto/:id", () => {
+  let prisma
+  beforeEach(() => {
+    prisma = new PrismaClient()
+  })
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+  it("Cuando el gasto con el id especificado existe, la respuesta debe ser un mensaje de éxito", async () => {
+    const gastoMock = {
+      id: 1,
+      usuarioId: 1,
+      gasto: 100,
+      montoAnterior: 0,
+      fecha: String(new Date()),
+    }
+    prisma.gasto.findUnique.mockResolvedValue(gastoMock)
+    const res = await request(app).delete("/gasto/1")
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual({ message: "Gasto eliminado correctamente" })
+  })
+  it("Cuando el id no es un número, la respuesta debe ser un error 400", async () => {
+    const res = await request(app).delete("/gasto/abc")
     expect(res.statusCode).toBe(400)
     expect(res.body).toEqual({ error: "ID inválido" })
   })

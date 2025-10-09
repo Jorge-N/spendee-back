@@ -94,7 +94,7 @@ app.delete("/gasto/:id", validateToken, async (req, res) => {
   }
 })
 
-// Endpoint para mover gastos de una categoría a otra   
+// Endpoint para mover gastos de una categoría a otra
 
 app.put("/moverGastosCategoria", validateToken, async (req, res) => {
   const { categoriaOrigenId, categoriaDestinoId } = req.body
@@ -178,7 +178,7 @@ app.get("/ingresoPorId/:id", validateToken, async (req, res) => {
     const income = await prisma.ingreso.findUnique({
       where: { id },
     })
-    if (!income) return res.status(404).json({ error: "Gasto no encontrado" })
+    if (!income) return res.status(404).json({ error: "Ingreso no encontrado" })
     res.status(200).json(income)
   } catch (error) {
     res.status(400).json({ error: error.message })
