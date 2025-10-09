@@ -398,4 +398,43 @@ describe("GET /ingresoPorId/:id", () => {
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual(ingresoMock)
   })
+  it("Cuando el id no es un número, la respuesta debe ser un error 400", async () => {
+    const res = await request(app).get("/ingresoPorId/abc")
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toEqual({ error: "ID inválido" })
+  })
+})
+
+describe("GET /gastoPorId/:id", () => {
+  let prisma
+  beforeEach(() => {
+    prisma = new PrismaClient()
+  })
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+  it("Cuando el gasto con el id especificado no existe, la respuesta debe ser un error 404", async () => {
+    prisma.gasto.findUnique.mockResolvedValue(null)
+    const res = await request(app).get("/gastoPorId/999")
+    expect(res.statusCode).toBe(404)
+    expect(res.body).toEqual({ error: "Gasto no encontrado" })
+  })
+  it("Cuando el gasto con el id especificado existe, la respuesta debe ser el gasto", async () => {
+    const gastoMock = {
+      id: 1,
+      usuarioId: 1,
+      ingreso: 100,
+      montoAnterior: 0,
+      fecha: String(new Date()),
+    }
+    prisma.gasto.findUnique.mockResolvedValue(gastoMock)
+    const res = await request(app).get("/gastoPorId/1")
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual(gastoMock)
+  })
+  it("Cuando el id no es un número, la respuesta debe ser un error 400", async () => {
+    const res = await request(app).get("/gastoPorId/abc")
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toEqual({ error: "ID inválido" })
+  })
 })
