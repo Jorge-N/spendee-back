@@ -8,6 +8,7 @@ jest.mock("@prisma/client", () => {
       aggregate: jest.fn(),
       findUnique: jest.fn(),
       delete: jest.fn(),
+      groupBy: jest.fn(),
     },
     ingreso: {
       findMany: jest.fn(),
@@ -16,12 +17,16 @@ jest.mock("@prisma/client", () => {
       findUnique: jest.fn(),
       delete: jest.fn(),
     },
+    categorias: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+    },
   }
   return { PrismaClient: jest.fn(() => mPrisma) }
 })
 jest.mock("../middleware/validateToken.js", () => {
   return (req, res, next) => {
-    req.usuario = { usuarioId: 123, name: "Test User" }
+    req.usuario = { usuarioId: "123", name: "Test User" }
     next()
   }
 })
@@ -466,5 +471,148 @@ describe("DELETE /gasto/:id", () => {
     const res = await request(app).delete("/gasto/abc")
     expect(res.statusCode).toBe(400)
     expect(res.body).toEqual({ error: "ID inválido" })
+  })
+})
+
+describe("POST /customCategory", () => {
+  let prisma
+  beforeEach(() => {
+    prisma = new PrismaClient()
+  })
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+  it("Cuando se crea una categoria, debe devolver la categoria creada", async () => {
+    const nuevaCategoria = {
+      id: 1,
+      nombre: "Comida",
+      usuarioId: 123,
+      icono: "Wine",
+      color: "#FFFFFF",
+      descripcion: "Una descripción de comida",
+    }
+    prisma.categorias.create.mockResolvedValue(nuevaCategoria)
+    const res = await request(app).post("/customCategory").send({
+      nombre: "Comida",
+      icono: "Wine",
+      color: "#FFFFFF",
+      descripcion: "Una descripción de comida",
+    })
+    expect(res.statusCode).toBe(201)
+    expect(res.body).toEqual(nuevaCategoria)
+  })
+  it("cuando hay un error en prisma, me devuelve un codigo de error 400", async () => {
+    prisma.categorias.create.mockRejectedValue(new Error("DB error"))
+    const res = await request(app).post("/customCategory").send({
+      nombre: "Comida",
+      icono: "Wine",
+      color: "#FFFFFF",
+      descripcion: "Una descripción de comida",
+    })
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toEqual({ error: "DB error" })
+  })
+  it("cuando falta un campo obligatorio, me devuelve un codigo de error 400", async () => {
+    const res = await request(app).post("/customCategory").send({
+      icono: "Wine",
+      color: "#FFFFFF",
+      descripcion: "Una descripción de comida",
+    })
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toHaveProperty("error")
+  })
+})
+
+describe("GET /categories", () => {
+  let prisma
+  beforeEach(() => {
+    prisma = new PrismaClient()
+  })
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+  it("Cuando no hay categorias, la respuesta debe ser una lista vacía", async () => {
+    prisma.categorias.findMany.mockResolvedValue([])
+    const res = await request(app).get("/categories")
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual([])
+  })
+  it("Cuando la categoria existe pero no tiene gastos, la suma de gastos debe ser 0", async () => {
+    const categoriasMock = [
+      {
+        id: 1,
+        nombre: "Comida",
+        usuarioId: 123,
+        icono: "Wine",
+        color: "#FFFFFF",
+        descripcion: "Una descripción de comida",
+      },
+    ]
+    const resCategoriasMock = [
+      {
+        id: 1,
+        nombre: "Comida",
+        icono: "Wine",
+        color: "#FFFFFF",
+        descripcion: "Una descripción de comida",
+        totalGastos: 0,
+      },
+    ]
+    prisma.categorias.findMany.mockResolvedValue(categoriasMock)
+    const res = await request(app).get("/categories")
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual(resCategoriasMock)
+  })
+})
+
+describe("POST /gastosPorCategoria", () => {
+  let prisma
+  beforeEach(() => {
+    prisma = new PrismaClient()
+  })
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+  it("Cuando no hay gastos para la categoria, la respuesta debe ser una lista vacía", async () => {
+    prisma.gasto.groupBy.mockResolvedValue([])
+    const res = await request(app).post("/gastosPorCategoria").send({ id: 5 })
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual([])
+  })
+  it("Cuando hay gastos para la categoria, la respuesta debe ser una lista con los gastos agrupados por categoria", async () => {
+    const gastosPorCategoriaMock = [
+      {
+        id: 1,
+        categoriaId: 1,
+        monto: 100,
+      },
+      {
+        id: 2,
+        categoriaId: 1,
+        monto: 200,
+      },
+    ]
+    prisma.gasto.groupBy.mockResolvedValue(gastosPorCategoriaMock)
+    const res = await request(app).post("/gastosPorCategoria").send({ id: 1 })
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual(gastosPorCategoriaMock)
+  })
+  it("Cuando falta el campo id en el body, la respuesta debe ser un error 400", async () => {
+    const res = await request(app).post("/gastosPorCategoria").send({})
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toEqual({ error: "ID de categoría es requerido" })
+  })
+  it("Cuando el id no es un número, la respuesta debe ser un error 400", async () => {
+    const res = await request(app)
+      .post("/gastosPorCategoria")
+      .send({ id: "abc" })
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toEqual({ error: "ID inválido" })
+  })
+  it("Cuando hay un error en prisma, la respuesta debe ser un error 400", async () => {
+    prisma.gasto.groupBy.mockRejectedValue(new Error("DB error"))
+    const res = await request(app).post("/gastosPorCategoria").send({ id: 1 })
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toEqual({ error: "DB error" })
   })
 })
