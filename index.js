@@ -8,6 +8,11 @@ app.get("/health", (req, res) => {
   res.status(200).send("OK")
 })
 
+app.get("/gasto", async (req, res) => {
+  const gastos = await prisma.gasto.findMany()
+  res.json(gastos)
+})
+
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
