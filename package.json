@@ -23,7 +23,7 @@
     "test": "jest --watchAll --coverage",
     "devStart": "nodemon server.js",
     "seed": "node prisma/seed.js",
-    "start": "node server.js",
+    "start": "node index.js",
     "dev": "node server.js",
     "postinstall": "prisma generate"
   }
