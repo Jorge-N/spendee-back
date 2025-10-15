@@ -25,11 +25,11 @@ app.get("/test-jwt", validateToken, (req, res) => {
 })
 
 app.post("/gasto", validateToken, async (req, res) => {
-  const { userId, gasto, montoAnterior, categoriaId } = req.body
+  const { usuarioId, gasto, montoAnterior, categoriaId } = req.body
   try {
     const nuevoGasto = await prisma.gasto.create({
       data: {
-        usuarioId: userId,
+        usuarioId: usuarioId,
         gasto,
         montoAnterior,
         fecha: new Date(),
