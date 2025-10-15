@@ -260,7 +260,6 @@ app.post("/customCategory", validateToken, async (req, res) => {
 
 app.get("/categories", validateToken, async (req, res) => {
   const { month, year } = req.query
-  console.log("Fetching categories for", { month, year })
   try {
     const uid =
       req.usuario?.sub ||
