@@ -98,16 +98,18 @@ app.get("/gastoPorId/:id", validateToken, async (req, res) => {
 app.put("/gastoPorId/:id", validateToken, async (req, res) => {
   const id = parseInt(req.params.id)
   const { fromCategoryId, toCategoryId } = req.query
+  const fromCategoryIdInt = parseInt(fromCategoryId)
+  const toCategoryIdInt = parseInt(toCategoryId)
   if (isNaN(id)) {
     return res.status(400).json({ error: "ID inválido" })
   }
 
   try {
     const fromCategory = await prisma.categorias.findUnique({
-      where: { id: fromCategoryId },
+      where: { id: fromCategoryIdInt },
     })
     const toCategory = await prisma.categorias.findUnique({
-      where: { id: toCategoryId },
+      where: { id: toCategoryIdInt },
     })
 
     const expense = await prisma.gasto.findUnique({ where: { id } })
