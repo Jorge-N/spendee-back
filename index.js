@@ -95,6 +95,31 @@ app.get("/gastoPorId/:id", validateToken, async (req, res) => {
   }
 })
 
+app.put("/gastoPorId/:id", validateToken, async (req, res) => {
+  const id = parseInt(req.params.id)
+  const { fromCategoryId, toCategoryId } = req.query
+  if (isNaN(id)) {
+    return res.status(400).json({ error: "ID inválido" })
+  }
+
+  try {
+    const fromCategory = await prisma.categorias.findUnique({
+      where: { id: fromCategoryId },
+    })
+    const toCategory = await prisma.categorias.findUnique({
+      where: { id: toCategoryId },
+    })
+
+    const expense = await prisma.gasto.findUnique({ where: { id } })
+    console.log(fromCategory)
+    console.log(toCategory)
+    console.log(expense)
+  } catch (error) {
+    console.log(error)
+    res.status(400).json({ message: "Error al extraer categorias o gasto" })
+  }
+})
+
 app.delete("/gasto/:id", validateToken, async (req, res) => {
   const id = parseInt(req.params.id)
   if (isNaN(id)) {
