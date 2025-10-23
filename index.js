@@ -12,11 +12,6 @@ app.get("/", (req, res) => {
   res.status(200).send("Spendee API is running")
 })
 
-app.get("/gasto", validateToken, async (req, res) => {
-  const gastos = await prisma.gasto.findMany()
-  res.json(gastos)
-})
-
 app.get("/test-jwt", validateToken, (req, res) => {
   res.json({
     message: "JWT válido!",
@@ -43,38 +38,72 @@ app.post("/gasto", validateToken, async (req, res) => {
 })
 
 app.get("/gasto", validateToken, async (req, res) => {
-  const gastos = await prisma.gasto.findMany()
-  res.json(gastos)
+  try {
+    const { userId, month, year, categoryId, limit, order = "asc" } = req.query
+    console.log(req.query)
+
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({ error: "Missing or invalid userId" })
+    }
+
+    const filters = {
+      where: {
+        usuarioId: userId,
+        ...(categoryId && { categoriaId: parseInt(categoryId) }),
+        ...(month &&
+          year && {
+            fecha: {
+              gte: new Date(Number(year), Number(month) - 1, 1),
+              lt: new Date(Number(year), Number(month), 1),
+            },
+          }),
+      },
+      orderBy: {
+        fecha: order === "desc" ? "desc" : "asc",
+      },
+      ...(limit && { take: parseInt(limit) }),
+    }
+
+    const gastos = await prisma.gasto.findMany(filters)
+    res.json(gastos)
+  } catch (error) {
+    console.error("Error fetching gastos:", error)
+    res.status(500).json({ error: "Internal server error" })
+  }
 })
 
-app.get("/gasto/:userId", validateToken, async (req, res) => {
-  const { userId } = req.params
-  const { limit: limitRaw, order: orderRaw } = req.query
-
-  const orderDir =
-    String(orderRaw || "desc").toLowerCase() === "asc" ? "asc" : "desc"
-
-  let take
-  if (limitRaw === undefined) {
-    take = 10
-  } else if (String(limitRaw).toLowerCase() === "all") {
-    take = undefined
-  } else {
-    const parsed = parseInt(limitRaw, 10)
-    take = Number.isNaN(parsed) || parsed <= 0 ? 10 : parsed
-  }
-
+app.get("/gasto/agrupado", validateToken, async (req, res) => {
   try {
-    const query = {
-      where: { usuarioId: userId },
-      orderBy: { fecha: orderDir },
-    }
-    if (take !== undefined) query.take = take
+    const { userId } = req.query
 
-    const userExpenses = await prisma.gasto.findMany(query)
-    res.status(200).json(userExpenses)
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({ error: "Missing or invalid userId" })
+    }
+
+    const groupedExpenses = await prisma.$queryRaw(`
+      SELECT 
+        TO_CHAR("fecha", 'YYYY-MM') AS month,
+        json_agg(
+          json_build_object(
+            'id', "id",
+            'usuarioId', "usuarioId",
+            'gasto', "gasto",
+            'fecha', "fecha",
+            'montoAnterior', "montoAnterior",
+            'categoriaId', "categoriaId"
+          )
+          ORDER BY "fecha" DESC
+        ) AS items
+      FROM "Gasto"
+      WHERE "usuarioId" = ${userId}
+      GROUP BY month
+      ORDER BY month DESC;
+    `)
+
+    res.json(groupedExpenses)
   } catch (error) {
-    res.status(400).json({ error: error.message })
+    console.error("Error grouping expenses:", error)
+    res.status(500).json({ error: "Internal server error" })
   }
 })
 
@@ -97,25 +126,19 @@ app.get("/gastoPorId/:id", validateToken, async (req, res) => {
 
 app.put("/gastoPorId/:id", validateToken, async (req, res) => {
   const id = parseInt(req.params.id)
-  const { fromCategoryId, toCategoryId } = req.query
-  const fromCategoryIdInt = parseInt(fromCategoryId)
+  const { toCategoryId } = req.body
   const toCategoryIdInt = parseInt(toCategoryId)
+
   if (isNaN(id)) {
     return res.status(400).json({ error: "ID inválido" })
   }
 
   try {
-    const fromCategory = await prisma.categorias.findUnique({
-      where: { id: fromCategoryIdInt },
+    await prisma.gasto.update({
+      where: { id },
+      data: { categoriaId: toCategoryIdInt },
     })
-    const toCategory = await prisma.categorias.findUnique({
-      where: { id: toCategoryIdInt },
-    })
-
-    const expense = await prisma.gasto.findUnique({ where: { id } })
-    console.log(fromCategory)
-    console.log(toCategory)
-    console.log(expense)
+    res.status(200).json({ message: "Categoría del gasto actualizada" })
   } catch (error) {
     console.log(error)
     res.status(400).json({ message: "Error al extraer categorias o gasto" })
@@ -348,21 +371,6 @@ app.get("/categories", validateToken, async (req, res) => {
   }
 })
 
-app.get("/gastosPorCategoria", validateToken, async (req, res) => {
-  const { userId, categoryId } = req.query
-  try {
-    const gastos = await prisma.gasto.findMany({
-      where: {
-        usuarioId: userId,
-        categoriaId: parseInt(categoryId),
-      },
-    })
-    res.json(gastos)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
-
 app.delete("/deleteCategory/:id", validateToken, async (req, res) => {
   const { id } = req.params
   try {
@@ -436,7 +444,7 @@ app.put("/modifyCategory/:id", validateToken, async (req, res) => {
   }
 })
 
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
 })
