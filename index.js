@@ -322,6 +322,85 @@ app.get("/ingreso/:userId", validateToken, async (req, res) => {
   }
 })
 
+app.get("/balance/agrupado", validateToken, async (req, res) => {
+  try {
+    const { userId, startDate, endDate, groupBy = "month" } = req.query
+
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({ error: "Missing or invalid userId" })
+    }
+
+    const start = startDate ? new Date(startDate) : new Date("1970-01-01")
+    const end = endDate ? new Date(endDate) : new Date()
+
+    let format
+    switch (groupBy) {
+      case "day":
+        format = "YYYY-MM-DD"
+        break
+      case "year":
+        format = "YYYY"
+        break
+      case "month":
+      default:
+        format = "YYYY-MM"
+        break
+    }
+
+    const expenses = await prisma.$queryRawUnsafe(`
+      SELECT 
+        "id",
+        "usuarioId",
+        "gasto" AS "monto",
+        "fecha",
+        "montoAnterior",
+        "categoriaId",
+        'expense' AS "tipo",
+        TO_CHAR("fecha", '${format}') AS period
+      FROM "Gasto"
+      WHERE "usuarioId" = '${userId}'
+      AND "fecha" BETWEEN '${start.toISOString()}' AND '${end.toISOString()}'
+    `)
+
+    const incomes = await prisma.$queryRawUnsafe(`
+      SELECT 
+        "id",
+        "usuarioId",
+        "ingreso" AS "monto",
+        "fecha",
+        "montoAnterior",
+        NULL AS "categoriaId",
+        'income' AS "tipo",
+        TO_CHAR("fecha", '${format}') AS period
+      FROM "Ingreso"
+      WHERE "usuarioId" = '${userId}'
+      AND "fecha" BETWEEN '${start.toISOString()}' AND '${end.toISOString()}'
+    `)
+
+    const allMovements = [...expenses, ...incomes].sort(
+      (a, b) => new Date(b.fecha) - new Date(a.fecha),
+    )
+
+    const grouped = allMovements.reduce((acc, mov) => {
+      if (!acc[mov.period]) acc[mov.period] = []
+      acc[mov.period].push(mov)
+      return acc
+    }, {})
+
+    const result = Object.entries(grouped)
+      .map(([period, items]) => ({
+        period,
+        items,
+      }))
+      .sort((a, b) => b.period.localeCompare(a.period))
+
+    res.json(result)
+  } catch (error) {
+    console.error("Error agrupando movimientos:", error)
+    res.status(500).json({ error: "Internal server error" })
+  }
+})
+
 app.get("/balance/:userId", validateToken, async (req, res) => {
   const { userId } = req.params
   try {
