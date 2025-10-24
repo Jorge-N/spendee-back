@@ -228,8 +228,71 @@ app.post("/ingreso", validateToken, async (req, res) => {
 })
 
 app.get("/ingreso", validateToken, async (req, res) => {
-  const ingresos = await prisma.ingreso.findMany()
-  res.json(ingresos)
+  try {
+    const { userId, month, year, limit, order = "asc" } = req.query
+    console.log(req.query)
+
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({ error: "Missing or invalid userId" })
+    }
+
+    const filters = {
+      where: {
+        usuarioId: userId,
+        ...(month &&
+          year && {
+            fecha: {
+              gte: new Date(Number(year), Number(month) - 1, 1),
+              lt: new Date(Number(year), Number(month), 1),
+            },
+          }),
+      },
+      orderBy: {
+        fecha: order === "desc" ? "desc" : "asc",
+      },
+      ...(limit && { take: parseInt(limit) }),
+    }
+
+    const ingresos = await prisma.ingreso.findMany(filters)
+    res.json(ingresos)
+  } catch (error) {
+    console.error("Error fetching ingresos:", error)
+    res.status(500).json({ error: "Internal server error" })
+  }
+})
+
+app.get("/ingreso/agrupado", validateToken, async (req, res) => {
+  try {
+    const { userId } = req.query
+
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({ error: "Missing or invalid userId" })
+    }
+
+    const groupedIncomes = await prisma.$queryRaw(`
+      SELECT 
+        TO_CHAR("fecha", 'YYYY-MM') AS month,
+        json_agg(
+          json_build_object(
+            'id', "id",
+            'usuarioId', "usuarioId",
+            'ingreso', "ingreso",
+            'montoAnterior', "montoAnterior",
+            'fecha', "fecha"
+          )
+          ORDER BY "fecha" DESC
+        ) AS items
+      FROM "Ingreso"
+      WHERE "usuarioId" = ${userId}
+      GROUP BY month
+      ORDER BY month DESC;
+    `)
+
+    res.json(groupedIncomes)
+  } catch (error) {
+    console.error("Error grouping ingresos:", error)
+    res.status(500).json({ error: "Internal server error" })
+  }
 })
 
 app.get("/ingresoPorId/:id", validateToken, async (req, res) => {
