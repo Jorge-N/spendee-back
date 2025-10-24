@@ -74,7 +74,7 @@ app.get("/gasto", validateToken, async (req, res) => {
 
 app.get("/gasto/agrupado", validateToken, async (req, res) => {
   try {
-    const { userId } = req.query
+    const { userId } = req.params
 
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })
@@ -263,7 +263,7 @@ app.get("/ingreso", validateToken, async (req, res) => {
 
 app.get("/ingreso/agrupado", validateToken, async (req, res) => {
   try {
-    const { userId } = req.query
+    const { userId } = req.params
 
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })
