@@ -40,7 +40,6 @@ app.post("/gasto", validateToken, async (req, res) => {
 app.get("/gasto", validateToken, async (req, res) => {
   try {
     const { userId, month, year, categoryId, limit, order = "asc" } = req.query
-    console.log(req.query)
 
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })
@@ -74,7 +73,7 @@ app.get("/gasto", validateToken, async (req, res) => {
 
 app.get("/gasto/agrupado", validateToken, async (req, res) => {
   try {
-    const { userId } = req.params
+    const { userId } = req.query
 
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })
@@ -230,7 +229,6 @@ app.post("/ingreso", validateToken, async (req, res) => {
 app.get("/ingreso", validateToken, async (req, res) => {
   try {
     const { userId, month, year, limit, order = "asc" } = req.query
-    console.log(req.query)
 
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })
@@ -263,7 +261,8 @@ app.get("/ingreso", validateToken, async (req, res) => {
 
 app.get("/ingreso/agrupado", validateToken, async (req, res) => {
   try {
-    const { userId } = req.params
+    const { userId } = req.query
+    console.log(userId)
 
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })
