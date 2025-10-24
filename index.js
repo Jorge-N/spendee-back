@@ -79,7 +79,7 @@ app.get("/gasto/agrupado", validateToken, async (req, res) => {
       return res.status(400).json({ error: "Missing or invalid userId" })
     }
 
-    const groupedExpenses = await prisma.$queryRaw(`
+    const groupedExpenses = await prisma.$queryRaw`
       SELECT 
         TO_CHAR("fecha", 'YYYY-MM') AS month,
         json_agg(
@@ -97,7 +97,7 @@ app.get("/gasto/agrupado", validateToken, async (req, res) => {
       WHERE "usuarioId" = ${userId}
       GROUP BY month
       ORDER BY month DESC;
-    `)
+    `
 
     res.json(groupedExpenses)
   } catch (error) {
@@ -262,13 +262,12 @@ app.get("/ingreso", validateToken, async (req, res) => {
 app.get("/ingreso/agrupado", validateToken, async (req, res) => {
   try {
     const { userId } = req.query
-    console.log(userId)
 
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })
     }
 
-    const groupedIncomes = await prisma.$queryRaw(`
+    const groupedIncomes = await prisma.$queryRaw`
       SELECT 
         TO_CHAR("fecha", 'YYYY-MM') AS month,
         json_agg(
@@ -285,7 +284,7 @@ app.get("/ingreso/agrupado", validateToken, async (req, res) => {
       WHERE "usuarioId" = ${userId}
       GROUP BY month
       ORDER BY month DESC;
-    `)
+    `
 
     res.json(groupedIncomes)
   } catch (error) {
