@@ -584,6 +584,45 @@ app.put("/modifyCategory/:id", validateToken, async (req, res) => {
   }
 })
 
+// app.get("/budget", validateToken, async (req, res) => {
+//   const { userId, startDate, endDate } = req.query
+//   try {
+//     const budgets = await prisma.budget.findUnique({
+//       where: {
+//         usuarioId: userId,
+//         fechInicio: {
+//           gte: new Date(startDate),
+//         },
+//         fechaFin: {
+//           lte: new Date(endDate),
+//         },
+//       },
+//     })
+//     res.status(200).json(budgets)
+//   } catch (error) {
+//     res.status(400).json({ error: error.message })
+//   }
+// })
+
+app.post("/budget", validateToken, async (req, res) => {
+  const { usuarioId, monto, fechaInicio, fechaFin, presupuestoCategoria } =
+    req.body
+  try {
+    const newBudget = await prisma.budget.create({
+      data: {
+        usuarioId,
+        monto: monto,
+        fechaInicio: fechaInicio,
+        fechaFin: fechaFin,
+        presupuestoCategoria: presupuestoCategoria,
+      },
+    })
+    res.status(201).json(newBudget)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
