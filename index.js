@@ -632,9 +632,92 @@ app.put("/modifyCategory/:id", validateToken, async (req, res) => {
   }
 })
 
+app.get("/budgets", async (req, res) => {
+  try {
+    const { usuarioId } = req.query
+
+    if (!usuarioId) {
+      return res.status(400).json({ error: "Falta el usuarioId" })
+    }
+    const now = new Date()
+    const [futureBudgets, currentBudget, pastBudgets] = await Promise.all([
+      prisma.presupuesto.findMany({
+        where: {
+          usuarioId,
+          fechaInicio: { gt: now },
+        },
+        include: {
+          PresupuestoCategoria: {
+            include: { categoria: true },
+          },
+        },
+        orderBy: { fechaInicio: "asc" },
+      }),
+      prisma.presupuesto.findFirst({
+        where: {
+          usuarioId,
+          fechaInicio: { lte: now },
+          fechaFin: { gte: now },
+        },
+        include: {
+          PresupuestoCategoria: {
+            include: { categoria: true },
+          },
+        },
+      }),
+      prisma.presupuesto.findMany({
+        where: {
+          usuarioId,
+          fechaFin: { lt: now },
+        },
+        include: {
+          PresupuestoCategoria: {
+            include: { categoria: true },
+          },
+        },
+        orderBy: { fechaFin: "desc" },
+      }),
+    ])
+    return res.json({
+      futureBudgets,
+      currentBudget,
+      pastBudgets,
+    })
+  } catch (error) {
+    console.error("Error al obtener presupuestos:", error)
+    res.status(500).json({ error: "Error interno del servidor" })
+  }
+})
+
+app.post("/budget", validateToken, async (req, res) => {
+  const { usuarioId, monto, fechaInicio, fechaFin, PresupuestoCategoria } =
+    req.body
+  try {
+    const newBudget = await prisma.presupuesto.create({
+      data: {
+        usuarioId,
+        monto: monto,
+        fechaInicio: fechaInicio,
+        fechaFin: fechaFin,
+        PresupuestoCategoria: {
+          create: PresupuestoCategoria.map((cat) => ({
+            categoriaId: cat.categoriaId,
+            monto: cat.monto,
+          })),
+        },
+      },
+    })
+    res.status(201).json(newBudget)
+  } catch (error) {
+    console.error("Error creando presupuesto:", error)
+    res.status(400).json({ error: error.message })
+  }
+})
+
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
 })
 
 module.exports = serverless(app)
+//module.exports = app
