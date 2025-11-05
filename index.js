@@ -1,5 +1,6 @@
 const serverless = require("serverless-http")
 const express = require("express")
+const truncateToDate = require("./helpers/truncateToDate.js")
 const validateToken = require("./middleware/validateToken.js")
 const { PrismaClient } = require("@prisma/client")
 
@@ -638,13 +639,12 @@ app.get("/budgets", async (req, res) => {
     if (!usuarioId) {
       return res.status(400).json({ error: "Falta el usuarioId" })
     }
-    const now = new Date()
-    const nowUTC = new Date(now.toISOString().split("T")[0])
+    const now = truncateToDate(new Date())
     const [futureBudgets, currentBudget, pastBudgets] = await Promise.all([
       prisma.presupuesto.findMany({
         where: {
           usuarioId,
-          fechaInicio: { gt: nowUTC },
+          fechaInicio: { gt: now },
         },
         include: {
           PresupuestoCategoria: {
@@ -656,8 +656,8 @@ app.get("/budgets", async (req, res) => {
       prisma.presupuesto.findFirst({
         where: {
           usuarioId,
-          fechaInicio: { lte: nowUTC },
-          fechaFin: { gte: nowUTC },
+          fechaInicio: { lte: now },
+          fechaFin: { gte: now },
         },
         include: {
           PresupuestoCategoria: {
@@ -668,7 +668,7 @@ app.get("/budgets", async (req, res) => {
       prisma.presupuesto.findMany({
         where: {
           usuarioId,
-          fechaFin: { lt: nowUTC },
+          fechaFin: { lt: now },
         },
         include: {
           PresupuestoCategoria: {
@@ -677,6 +677,37 @@ app.get("/budgets", async (req, res) => {
         },
       }),
     ])
+
+    if (currentBudget) {
+      const gastosPorCategoria = await prisma.gasto.groupBy({
+        by: ["categoriaId"],
+        _sum: { gasto: true },
+        where: {
+          usuarioId,
+          fecha: {
+            gte: currentBudget.fechaInicio,
+            lte: currentBudget.fechaFin,
+          },
+        },
+      })
+
+      const gastosMap = gastosPorCategoria.reduce((acc, g) => {
+        acc[g.categoriaId] = g._sum.gasto ?? 0
+        return acc
+      }, {})
+
+      currentBudget.PresupuestoCategoria =
+        currentBudget.PresupuestoCategoria.map((presCat) => {
+          const gastado = gastosMap[presCat.categoriaId] || 0
+          const porcentaje = Math.min((gastado / presCat.monto) * 100, 100)
+          return {
+            ...presCat,
+            gastado,
+            porcentaje,
+          }
+        })
+    }
+
     return res.json({
       futureBudgets,
       currentBudget,
@@ -691,13 +722,16 @@ app.get("/budgets", async (req, res) => {
 app.post("/budget", validateToken, async (req, res) => {
   const { usuarioId, monto, fechaInicio, fechaFin, PresupuestoCategoria } =
     req.body
+
+  const fechaInicioT = truncateToDate(fechaInicio)
+  const fechaFinT = truncateToDate(fechaFin)
   try {
     const newBudget = await prisma.presupuesto.create({
       data: {
         usuarioId,
         monto: monto,
-        fechaInicio: fechaInicio,
-        fechaFin: fechaFin,
+        fechaInicio: fechaInicioT,
+        fechaFin: fechaFinT,
         PresupuestoCategoria: {
           create: PresupuestoCategoria.map((cat) => ({
             categoriaId: cat.categoriaId,
@@ -719,4 +753,4 @@ app.listen(PORT, () => {
 })
 
 module.exports = serverless(app)
-//module.exports = app
+module.exports = app
