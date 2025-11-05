@@ -707,11 +707,30 @@ app.get("/budgets", async (req, res) => {
           }
         })
     }
+    const allBudgets = [
+      ...pastBudgets,
+      ...(currentBudget ? [currentBudget] : []),
+      ...futureBudgets,
+    ]
+    const allBudgetDates = allBudgets.flatMap((budget) => {
+      const fechas = []
+      const start = new Date(budget.fechaInicio)
+      const end = new Date(budget.fechaFin)
+      const current = new Date(start)
 
+      while (current <= end) {
+        fechas.push(new Date(current))
+        current.setDate(current.getDate() + 1)
+      }
+
+      return fechas
+    })
+    console.log("Fechas de todos los presupuestos:", allBudgetDates)
     return res.json({
       futureBudgets,
       currentBudget,
       pastBudgets,
+      allBudgetDates,
     })
   } catch (error) {
     console.error("Error al obtener presupuestos:", error)
