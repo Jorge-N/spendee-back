@@ -605,20 +605,26 @@ app.put("/modifyCategory/:id", validateToken, async (req, res) => {
 // })
 
 app.post("/budget", validateToken, async (req, res) => {
-  const { usuarioId, monto, fechaInicio, fechaFin, presupuestoCategoria } =
+  const { usuarioId, monto, fechaInicio, fechaFin, PresupuestoCategoria } =
     req.body
   try {
-    const newBudget = await prisma.budget.create({
+    const newBudget = await prisma.presupuesto.create({
       data: {
         usuarioId,
         monto: monto,
         fechaInicio: fechaInicio,
         fechaFin: fechaFin,
-        presupuestoCategoria: presupuestoCategoria,
+        PresupuestoCategoria: {
+          create: PresupuestoCategoria.map((cat) => ({
+            categoriaId: cat.categoriaId,
+            monto: cat.monto,
+          })),
+        },
       },
     })
     res.status(201).json(newBudget)
   } catch (error) {
+    console.error("Error creando presupuesto:", error)
     res.status(400).json({ error: error.message })
   }
 })
@@ -629,3 +635,4 @@ app.listen(PORT, () => {
 })
 
 module.exports = serverless(app)
+//module.exports = app
