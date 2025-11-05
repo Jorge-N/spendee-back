@@ -587,16 +587,16 @@ app.put("/modifyCategory/:id", validateToken, async (req, res) => {
 app.get("/budgets", async (req, res) => {
   try {
     const { usuarioId } = req.query
-
     if (!usuarioId) {
       return res.status(400).json({ error: "Falta el usuarioId" })
     }
     const now = new Date()
+    const nowUTC = new Date(now.toISOString().split("T")[0])
     const [futureBudgets, currentBudget, pastBudgets] = await Promise.all([
       prisma.presupuesto.findMany({
         where: {
           usuarioId,
-          fechaInicio: { gt: now },
+          fechaInicio: { gt: nowUTC },
         },
         include: {
           PresupuestoCategoria: {
@@ -608,8 +608,8 @@ app.get("/budgets", async (req, res) => {
       prisma.presupuesto.findFirst({
         where: {
           usuarioId,
-          fechaInicio: { lte: now },
-          fechaFin: { gte: now },
+          fechaInicio: { lte: nowUTC },
+          fechaFin: { gte: nowUTC },
         },
         include: {
           PresupuestoCategoria: {
@@ -620,14 +620,13 @@ app.get("/budgets", async (req, res) => {
       prisma.presupuesto.findMany({
         where: {
           usuarioId,
-          fechaFin: { lt: now },
+          fechaFin: { lt: nowUTC },
         },
         include: {
           PresupuestoCategoria: {
             include: { categoria: true },
           },
         },
-        orderBy: { fechaFin: "desc" },
       }),
     ])
     return res.json({
