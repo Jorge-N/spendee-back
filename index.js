@@ -905,4 +905,3 @@ app.listen(PORT, () => {
 })
 
 module.exports = serverless(app)
-module.exports = app
