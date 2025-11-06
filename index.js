@@ -821,6 +821,22 @@ app.put("/budget/:id", validateToken, async (req, res) => {
   }
 })
 
+app.get("/budget/:budgetId", validateToken, async (req, res) => {
+  const { budgetId } = req.params
+  try {
+    const budget = await prisma.presupuesto.findUnique({
+      where: { id: parseInt(budgetId) },
+      include: {
+        PresupuestoCategoria: true,
+      },
+    })
+    res.status(200).json(budget)
+  } catch (error) {
+    console.error("Error obteniendo presupuesto:", error)
+    res.status(400).json({ error: error.message })
+  }
+})
+
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
