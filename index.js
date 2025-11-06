@@ -639,7 +639,9 @@ app.get("/budgets", async (req, res) => {
     if (!usuarioId) {
       return res.status(400).json({ error: "Falta el usuarioId" })
     }
+
     const now = truncateToDate(new Date())
+
     const [futureBudgets, currentBudget, pastBudgets] = await Promise.all([
       prisma.presupuesto.findMany({
         where: {
@@ -675,18 +677,19 @@ app.get("/budgets", async (req, res) => {
             include: { categoria: true },
           },
         },
+        orderBy: { fechaInicio: "asc" },
       }),
     ])
 
-    if (currentBudget) {
+    const calcularGastos = async (presupuesto) => {
       const gastosPorCategoria = await prisma.gasto.groupBy({
         by: ["categoriaId"],
         _sum: { gasto: true },
         where: {
           usuarioId,
           fecha: {
-            gte: currentBudget.fechaInicio,
-            lte: currentBudget.fechaFin,
+            gte: presupuesto.fechaInicio,
+            lte: presupuesto.fechaFin,
           },
         },
       })
@@ -696,22 +699,42 @@ app.get("/budgets", async (req, res) => {
         return acc
       }, {})
 
-      currentBudget.PresupuestoCategoria =
-        currentBudget.PresupuestoCategoria.map((presCat) => {
+      const categoriasConGasto = presupuesto.PresupuestoCategoria.map(
+        (presCat) => {
           const gastado = gastosMap[presCat.categoriaId] || 0
-          const porcentaje = Math.min((gastado / presCat.monto) * 100, 100)
+          const porcentaje = (gastado / presCat.monto) * 100
           return {
             ...presCat,
             gastado,
             porcentaje,
           }
-        })
+        },
+      )
+
+      return {
+        ...presupuesto,
+        PresupuestoCategoria: categoriasConGasto,
+      }
     }
+
+    const pastBudgetsConDatos = await Promise.all(
+      pastBudgets.map(calcularGastos),
+    )
+
+    const currentBudgetConDatos = currentBudget
+      ? await calcularGastos(currentBudget)
+      : null
+
+    const futureBudgetsConDatos = await Promise.all(
+      futureBudgets.map(calcularGastos),
+    )
+
     const allBudgets = [
-      ...pastBudgets,
-      ...(currentBudget ? [currentBudget] : []),
-      ...futureBudgets,
+      ...pastBudgetsConDatos,
+      ...(currentBudgetConDatos ? [currentBudgetConDatos] : []),
+      ...futureBudgetsConDatos,
     ]
+
     const allBudgetDates = allBudgets.flatMap((budget) => {
       const fechas = []
       const start = new Date(budget.fechaInicio)
@@ -725,11 +748,11 @@ app.get("/budgets", async (req, res) => {
 
       return fechas
     })
-    console.log("Fechas de todos los presupuestos:", allBudgetDates)
+
     return res.json({
-      futureBudgets,
-      currentBudget,
-      pastBudgets,
+      futureBudgets: futureBudgetsConDatos,
+      currentBudget: currentBudgetConDatos,
+      pastBudgets: pastBudgetsConDatos,
       allBudgetDates,
     })
   } catch (error) {
