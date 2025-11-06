@@ -725,7 +725,6 @@ app.get("/budgets", async (req, res) => {
 
       return fechas
     })
-    console.log("Fechas de todos los presupuestos:", allBudgetDates)
     return res.json({
       futureBudgets,
       currentBudget,
@@ -762,6 +761,62 @@ app.post("/budget", validateToken, async (req, res) => {
     res.status(201).json(newBudget)
   } catch (error) {
     console.error("Error creando presupuesto:", error)
+    res.status(400).json({ error: error.message })
+  }
+})
+
+app.delete("/budget/:id", validateToken, async (req, res) => {
+  const { id } = req.params
+  try {
+    const deletedPresupuestoCategorias =
+      await prisma.presupuestoCategoria.deleteMany({
+        where: { presupuestoId: parseInt(id) },
+      })
+    const deletedBudget = await prisma.presupuesto.delete({
+      where: { id: parseInt(id) },
+    })
+    res
+      .status(200)
+      .json({ message: "Presupuesto eliminado correctamente", deletedBudget })
+  } catch (error) {
+    console.error("Error eliminando presupuesto:", error)
+    res.status(400).json({ error: error.message })
+  }
+})
+
+app.put("/budget/:id", validateToken, async (req, res) => {
+  const { id } = req.params
+  const { monto, fechaInicio, fechaFin, PresupuestoCategoria } = req.body
+
+  try {
+    const updatedBudget = await prisma.presupuesto.update({
+      where: { id: parseInt(id) },
+      data: {
+        monto,
+        fechaInicio: new Date(fechaInicio),
+        fechaFin: new Date(fechaFin),
+      },
+    })
+
+    await prisma.presupuestoCategoria.deleteMany({
+      where: { presupuestoId: parseInt(id) },
+    })
+
+    if (PresupuestoCategoria?.length) {
+      await prisma.presupuestoCategoria.createMany({
+        data: PresupuestoCategoria.map((cat) => ({
+          presupuestoId: parseInt(id),
+          categoriaId: cat.categoriaId,
+          monto: cat.monto,
+        })),
+      })
+    }
+
+    res
+      .status(200)
+      .json({ message: "Presupuesto actualizado correctamente", updatedBudget })
+  } catch (error) {
+    console.error("Error actualizando presupuesto:", error)
     res.status(400).json({ error: error.message })
   }
 })
