@@ -850,10 +850,49 @@ app.get("/budget/:budgetId", validateToken, async (req, res) => {
     const budget = await prisma.presupuesto.findUnique({
       where: { id: parseInt(budgetId) },
       include: {
-        PresupuestoCategoria: true,
+        PresupuestoCategoria: {
+          include: { categoria: true },
+        },
       },
     })
-    res.status(200).json(budget)
+
+    if (!budget) {
+      return res.status(404).json({ error: "Presupuesto no encontrado" })
+    }
+
+    const gastosPorCategoria = await prisma.gasto.groupBy({
+      by: ["categoriaId"],
+      _sum: { gasto: true },
+      where: {
+        usuarioId: budget.usuarioId,
+        fecha: {
+          gte: budget.fechaInicio,
+          lte: budget.fechaFin,
+        },
+      },
+    })
+
+    const gastosMap = gastosPorCategoria.reduce((acc, g) => {
+      acc[g.categoriaId] = g._sum.gasto ?? 0
+      return acc
+    }, {})
+
+    const categoriasConGasto = budget.PresupuestoCategoria.map((presCat) => {
+      const gastado = gastosMap[presCat.categoriaId] || 0
+      const porcentaje = presCat.monto > 0 ? (gastado / presCat.monto) * 100 : 0
+      return {
+        ...presCat,
+        gastado,
+        porcentaje,
+      }
+    })
+
+    const budgetConDatos = {
+      ...budget,
+      PresupuestoCategoria: categoriasConGasto,
+    }
+
+    res.status(200).json(budgetConDatos)
   } catch (error) {
     console.error("Error obteniendo presupuesto:", error)
     res.status(400).json({ error: error.message })
