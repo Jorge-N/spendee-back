@@ -9,6 +9,10 @@ const app = express()
 
 app.use(express.json())
 
+// Mount API routes protected by APISecret (x-api-key + x-api-user-id)
+const apiRouter = require('./api')
+app.use('/api', apiRouter)
+
 app.get("/", (req, res) => {
   res.status(200).send("Spendee API is running")
 })
@@ -212,6 +216,7 @@ app.put("/moverGastosCategoria", validateToken, async (req, res) => {
 
 app.post("/ingreso", validateToken, async (req, res) => {
   const { userId, ingreso, montoAnterior } = req.body
+  console.log(req.body) 
   try {
     const nuevoIngreso = await prisma.ingreso.create({
       data: {
@@ -899,9 +904,105 @@ app.get("/budget/:budgetId", validateToken, async (req, res) => {
   }
 })
 
-const PORT = process.env.PORT || 5000
+//get API ID
+app.get("/getApiId", validateToken, async (req, res) => {
+  const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+  console.log("Obteniendo API User ID:", uid)
+  res.json({ apiId: uid })
+})
+
+  //Generar API Secret
+app.post("/generateApiSecret", validateToken, async (req, res) => {
+  // Extraer identificadores desde el token (compatible con distintos claim names de Firebase)
+  const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+  const email = req.usuario?.email
+  const nombre = req.usuario?.name || req.usuario?.displayName || ""
+
+  if (!uid) {
+    return res.status(400).json({ error: "No se pudo obtener el identificador del usuario del token" })
+  }
+
+  const crypto = require("crypto")
+
+  try {
+    const apiSecret = crypto.randomBytes(32).toString("hex")
+    const salt = crypto.randomBytes(16).toString("hex")
+    const derivedKey = crypto.scryptSync(apiSecret, salt, 64).toString("hex")
+    const storedValue = `${salt}:${derivedKey}`
+
+    const existingUser = await prisma.usuario.findUnique({
+      where: { id: uid },
+    })
+
+    if (existingUser) {
+      await prisma.usuario.update({
+        where: { id: uid },
+        data: { APISecret: storedValue },
+      })
+    } else {
+      const emailToStore = email
+      await prisma.usuario.create({
+        data: {
+          id: uid,
+          nombre: nombre || "",
+          email: emailToStore,
+          isDeveloper: true,
+          APISecret: storedValue,
+        },
+      })
+    }
+
+    // Devolver el secret en texto plano al usuario
+    res.json({ apiSecret })
+  } catch (error) {
+    console.error("Error generando API Secret:", error)
+    res.status(500).json({ error: "Error generando API Secret" })
+  }
+})
+
+app.delete("/deleteApiSecret", validateToken, async (req, res) => {
+  console.log("Eliminando API Secret del usuario")
+  const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid 
+  if (!uid) {
+    return res.status(400).json({ error: "No se pudo obtener el identificador del usuario del token" })
+  }
+  try {
+    await prisma.usuario.update({
+      where: { id: uid },
+      data: { APISecret: null, isDeveloper: false },
+    })
+    console.log(`API Secret eliminado para el usuario ${uid}`)
+    res.json({ message: "API Secret eliminado correctamente" })
+  } catch (error) {
+    console.error("Error eliminando API Secret:", error)
+    res.status(500).json({ error: "Error eliminando API Secret" })
+  }})
+
+app.get("/hasAPISecret", validateToken, async (req, res) => {
+  console.log("Verificando si el usuario tiene API Secret")
+  const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+
+  if (!uid) {
+    return res.status(400).json({ error: "No se pudo obtener el identificador del usuario del token" })
+  }
+  try {
+    const user = await prisma.usuario.findUnique({
+      where: { id: uid },
+    })
+    const hasSecret = !!(user && user.APISecret)
+    console.log(`Usuario ${uid} tiene API Secret: ${hasSecret}`)
+    res.json({ hasSecret })
+  } catch (error) {
+    console.error("Error verificando API Secret:", error)
+    res.status(500).json({ error: "Error verificando API Secret" })
+  }
+})
+
+
+
+const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
 })
 
-module.exports = serverless(app)
+module.exports = app

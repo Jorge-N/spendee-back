@@ -54,3 +54,11 @@ model PresupuestoCategoria {
   presupuesto   Presupuesto @relation(fields: [presupuestoId], references: [id])
   categoria     Categorias  @relation(fields: [categoriaId], references: [id])
 }
+
+model Usuario {
+  id           String      @id 
+  nombre       String
+  email        String      @unique
+  isDeveloper  Boolean     @default(false)
+  APISecret    String?
+}
