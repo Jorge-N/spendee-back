@@ -29,9 +29,9 @@ model Categorias {
   id          Int                    @id @default(autoincrement())
   usuarioId   String
   nombre      String
-  icono       String
-  color       String
-  descripcion String
+  icono       String?
+  color       String?
+  descripcion String?
   editable    Boolean                @default(true)
   gastos      Gasto[]
   presupuesto PresupuestoCategoria[]

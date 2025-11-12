@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Categorias" ALTER COLUMN "icono" DROP NOT NULL,
+ALTER COLUMN "color" DROP NOT NULL,
+ALTER COLUMN "descripcion" DROP NOT NULL;
