@@ -1,8 +1,7 @@
-const express = require('express')
+const express = require("express")
 const router = express.Router()
-const { PrismaClient } = require('@prisma/client')
-const truncateToDate = require('./helpers/truncateToDate')
-const validateApiKey = require('./middleware/validateApiKey')
+const { PrismaClient } = require("@prisma/client")
+const truncateToDate = require("./helpers/truncateToDate")
 
 const prisma = new PrismaClient()
 
@@ -10,12 +9,12 @@ const prisma = new PrismaClient()
 //router.use(validateApiKey)
 
 // Create gasto
-router.post('/gasto', async (req, res) => {
-  const { gasto, categoryName} = req.body
-  const userId = 'Hd6DgTtfSzfYslqr6ue1ijyRwzJ3' //cambiar
+router.post("/gasto", async (req, res) => {
+  const { gasto, categoryName } = req.body
+  const userId = "Hd6DgTtfSzfYslqr6ue1ijyRwzJ3" //cambiar
 
   if (gasto == null || isNaN(Number(gasto))) {
-    return res.status(400).json({ error: 'Missing or invalid gasto amount' })
+    return res.status(400).json({ error: "Missing or invalid gasto amount" })
   }
 
   try {
@@ -27,7 +26,7 @@ router.post('/gasto', async (req, res) => {
       },
     })
 
-    let categoriaId;
+    let categoriaId
     if (!categoria) {
       categoria = await prisma.categorias.create({
         data: {
@@ -36,13 +35,23 @@ router.post('/gasto', async (req, res) => {
         },
       })
     }
-    categoriaId = categoria.id;
+    categoriaId = categoria.id
 
-    const gastoSum = await prisma.gasto.aggregate({ where: { usuarioId: userId }, _sum: { gasto: true } })
-    const ingresoSum = await prisma.ingreso.aggregate({ where: { usuarioId: userId }, _sum: { ingreso: true } })
+    const gastoSum = await prisma.gasto.aggregate({
+      where: { usuarioId: userId },
+      _sum: { gasto: true },
+    })
+    const ingresoSum = await prisma.ingreso.aggregate({
+      where: { usuarioId: userId },
+      _sum: { ingreso: true },
+    })
 
-    const sumaGastos = gastoSum._sum.gasto ? parseFloat(gastoSum._sum.gasto.toString()) : 0
-    const sumaIngresos = ingresoSum._sum.ingreso ? parseFloat(ingresoSum._sum.ingreso.toString()) : 0
+    const sumaGastos = gastoSum._sum.gasto
+      ? parseFloat(gastoSum._sum.gasto.toString())
+      : 0
+    const sumaIngresos = ingresoSum._sum.ingreso
+      ? parseFloat(ingresoSum._sum.ingreso.toString())
+      : 0
 
     const montoAnterior = sumaIngresos - sumaGastos
 
@@ -58,15 +67,15 @@ router.post('/gasto', async (req, res) => {
 
     res.status(201).json(nuevoGasto)
   } catch (error) {
-    console.error('API POST /gasto error:', error)
+    console.error("API POST /gasto error:", error)
     res.status(400).json({ error: error.message })
   }
 })
 
-router.get('/gastos', async (req, res) => {
+router.get("/gastos", async (req, res) => {
   try {
-    const { month, year, categoryName, limit = 100, order = 'asc' } = req.query
-    const userId = 'Hd6DgTtfSzfYslqr6ue1ijyRwzJ3' 
+    const { month, year, categoryName, limit = 100, order = "asc" } = req.query
+    const userId = "Hd6DgTtfSzfYslqr6ue1ijyRwzJ3"
 
     //busqueda categoria
     let categoria = await prisma.categorias.findFirst({
@@ -76,13 +85,12 @@ router.get('/gastos', async (req, res) => {
       },
     })
 
-    let categoryId;
+    let categoryId
     if (!categoria) {
       //devolver error si no existe la categoria
-      return res.status(400).json({ error: 'Categoria no encontrada' })
+      return res.status(400).json({ error: "Categoria no encontrada" })
     }
-    categoryId = categoria.id;
-
+    categoryId = categoria.id
 
     const filters = {
       where: {
@@ -96,28 +104,38 @@ router.get('/gastos', async (req, res) => {
             },
           }),
       },
-      orderBy: { fecha: order === 'desc' ? 'desc' : 'asc' },
+      orderBy: { fecha: order === "desc" ? "desc" : "asc" },
       ...(limit && { take: parseInt(limit) }),
     }
 
     const gastos = await prisma.gasto.findMany(filters)
     res.json(gastos)
   } catch (error) {
-    console.error('API /gasto error:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    console.error("API /gasto error:", error)
+    res.status(500).json({ error: "Internal server error" })
   }
 })
 
 // Ingresos
-router.post('/ingreso', async (req, res) => {
+router.post("/ingreso", async (req, res) => {
   const { ingreso } = req.body
-  const userId = 'Hd6DgTtfSzfYslqr6ue1ijyRwzJ3' //cambiar
+  const userId = "Hd6DgTtfSzfYslqr6ue1ijyRwzJ3" //cambiar
   try {
-    const gastoSum = await prisma.gasto.aggregate({ where: { usuarioId: userId }, _sum: { gasto: true } })
-    const ingresoSum = await prisma.ingreso.aggregate({ where: { usuarioId: userId }, _sum: { ingreso: true } })
+    const gastoSum = await prisma.gasto.aggregate({
+      where: { usuarioId: userId },
+      _sum: { gasto: true },
+    })
+    const ingresoSum = await prisma.ingreso.aggregate({
+      where: { usuarioId: userId },
+      _sum: { ingreso: true },
+    })
 
-    const sumaGastos = gastoSum._sum.gasto ? parseFloat(gastoSum._sum.gasto.toString()) : 0
-    const sumaIngresos = ingresoSum._sum.ingreso ? parseFloat(ingresoSum._sum.ingreso.toString()) : 0
+    const sumaGastos = gastoSum._sum.gasto
+      ? parseFloat(gastoSum._sum.gasto.toString())
+      : 0
+    const sumaIngresos = ingresoSum._sum.ingreso
+      ? parseFloat(ingresoSum._sum.ingreso.toString())
+      : 0
 
     const montoAnterior = sumaIngresos - sumaGastos
 
@@ -130,10 +148,10 @@ router.post('/ingreso', async (req, res) => {
   }
 })
 
-router.get('/ingresos', async (req, res) => {
+router.get("/ingresos", async (req, res) => {
   try {
-    const { month, year, limit = 100, order = 'asc' } = req.query
-    const userId = 'Hd6DgTtfSzfYslqr6ue1ijyRwzJ3' //cambiar
+    const { month, year, limit = 100, order = "asc" } = req.query
+    const userId = "Hd6DgTtfSzfYslqr6ue1ijyRwzJ3" //cambiar
     const filters = {
       where: {
         usuarioId: userId,
@@ -145,24 +163,24 @@ router.get('/ingresos', async (req, res) => {
             },
           }),
       },
-      orderBy: { fecha: order === 'desc' ? 'desc' : 'asc' },
+      orderBy: { fecha: order === "desc" ? "desc" : "asc" },
       ...(limit && { take: parseInt(limit) }),
     }
     const ingresos = await prisma.ingreso.findMany(filters)
     res.json(ingresos)
   } catch (error) {
-    console.error('API /ingreso error:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    console.error("API /ingreso error:", error)
+    res.status(500).json({ error: "Internal server error" })
   }
 })
 
 // Get balance aggregated by month (simple version)
-router.get('/balance', async (req, res) => {
+router.get("/balance", async (req, res) => {
   try {
-    const { startDate, endDate, order = 'asc' } = req.query
-    const userId = 'Hd6DgTtfSzfYslqr6ue1ijyRwzJ3' //cambiar
+    const { startDate, endDate, order = "asc" } = req.query
+    const userId = "Hd6DgTtfSzfYslqr6ue1ijyRwzJ3" //cambiar
 
-    const start = startDate ? new Date(startDate) : new Date('1970-01-01')
+    const start = startDate ? new Date(startDate) : new Date("1970-01-01")
     const end = endDate ? new Date(endDate) : new Date()
 
     const expenses = await prisma.gasto.findMany({
@@ -175,40 +193,58 @@ router.get('/balance', async (req, res) => {
       select: { ingreso: true, fecha: true },
     })
 
-    const formattedExpenses = expenses.map((e) => ({ monto: Number(e.gasto), fecha: e.fecha, tipo: 'expense', period: e.fecha.toISOString().slice(0, 7) }))
-    const formattedIncomes = incomes.map((i) => ({ monto: Number(i.ingreso), fecha: i.fecha, tipo: 'income', period: i.fecha.toISOString().slice(0, 7) }))
+    const formattedExpenses = expenses.map((e) => ({
+      monto: Number(e.gasto),
+      fecha: e.fecha,
+      tipo: "expense",
+      period: e.fecha.toISOString().slice(0, 7),
+    }))
+    const formattedIncomes = incomes.map((i) => ({
+      monto: Number(i.ingreso),
+      fecha: i.fecha,
+      tipo: "income",
+      period: i.fecha.toISOString().slice(0, 7),
+    }))
 
-    const all = [...formattedExpenses, ...formattedIncomes].sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
+    const all = [...formattedExpenses, ...formattedIncomes].sort(
+      (a, b) => new Date(a.fecha) - new Date(b.fecha),
+    )
 
     const grouped = Object.values(
       all.reduce((acc, mov) => {
         const { period, tipo, monto } = mov
-        if (!acc[period]) acc[period] = { period, items: [], totalEgresos: 0, totalIngresos: 0 }
+        if (!acc[period])
+          acc[period] = { period, items: [], totalEgresos: 0, totalIngresos: 0 }
         acc[period].items.push(mov)
-        if (tipo === 'income') acc[period].totalIngresos += monto
-        if (tipo === 'expense') acc[period].totalEgresos += monto
+        if (tipo === "income") acc[period].totalIngresos += monto
+        if (tipo === "expense") acc[period].totalEgresos += monto
         return acc
       }, {}),
     )
 
-    const result = grouped.sort((a, b) => (order === 'desc' ? b.period.localeCompare(a.period) : a.period.localeCompare(b.period)))
+    const result = grouped.sort((a, b) =>
+      order === "desc"
+        ? b.period.localeCompare(a.period)
+        : a.period.localeCompare(b.period),
+    )
     res.json(result)
   } catch (error) {
-    console.error('API /balance error:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    console.error("API /balance error:", error)
+    res.status(500).json({ error: "Internal server error" })
   }
 })
 
-
 // Categories
-router.get('/categories', async (req, res) => {
+router.get("/categories", async (req, res) => {
   try {
-    const uid = 'Hd6DgTtfSzfYslqr6ue1ijyRwzJ3' //cambiar
-    const categorias = await prisma.categorias.findMany({ where: { OR: [{ usuarioId: '0' }, { usuarioId: uid }] } })
+    const uid = "Hd6DgTtfSzfYslqr6ue1ijyRwzJ3" //cambiar
+    const categorias = await prisma.categorias.findMany({
+      where: { OR: [{ usuarioId: "0" }, { usuarioId: uid }] },
+    })
     res.json(categorias)
   } catch (error) {
-    console.error('API /categories error:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    console.error("API /categories error:", error)
+    res.status(500).json({ error: "Internal server error" })
   }
 })
 
