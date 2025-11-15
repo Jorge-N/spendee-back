@@ -5,8 +5,44 @@ const truncateToDate = require("./helpers/truncateToDate")
 
 const prisma = new PrismaClient()
 
-// All routes require API key auth
-//router.use(validateApiKey)
+// Public login route: authenticate email/password against Firebase
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body || {}
+    console.log('Login attempt for email:', email)
+    console.log('FIREBASE_API_KEY:', process.env.FIREBASE_API_KEY ? 'present' : 'missing')
+    if (!email || !password) return res.status(400).json({ error: 'Missing email or password' })
+
+    const apiKey = process.env.FIREBASE_API_KEY
+    if (!apiKey) return res.status(500).json({ error: 'Server misconfiguration: FIREBASE_API_KEY missing' })
+
+    const resp = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, returnSecureToken: true }),
+    })
+
+    const data = await resp.json()
+    if (!resp.ok) return res.status(401).json({ error: data.error?.message || 'Authentication failed', details: data })
+
+    const { idToken, refreshToken, expiresIn, localId: uid, displayName } = data
+
+    // Reconcile user in Prisma (find by id or email)
+    const existing = await prisma.usuario.findFirst({ where: { OR: [{ id: uid }, { email }] } }).catch(() => null)
+    let usuario
+    if (existing) {
+      const where = existing.id === uid ? { id: uid } : { email: existing.email }
+      usuario = await prisma.usuario.update({ where, data: { nombre: displayName || existing.nombre, email } })
+    } else {
+      usuario = await prisma.usuario.create({ data: { id: uid, nombre: displayName || '', email, isDeveloper: false } })
+    }
+
+    res.json({ idToken, refreshToken, expiresIn, uid, usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, isDeveloper: usuario.isDeveloper } })
+  } catch (err) {
+    console.error('Login error:', err)
+    res.status(500).json({ error: 'Internal server error during login' })
+  }
+})
 
 // Create gasto
 router.post("/gasto", async (req, res) => {
