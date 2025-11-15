@@ -189,4 +189,68 @@ router.get('/oauth/google/callback', async (req, res) => {
   }
 })
 
+// POST /auth/refresh
+// Body: { provider: 'firebase'|'google', refreshToken: string }
+// Exchanges a refresh token for new tokens. Returns the provider response (id_token/access_token/etc.).
+router.post('/refresh', async (req, res) => {
+  try {
+    const { provider = 'google', refreshToken } = req.body || {}
+    if (!refreshToken || typeof refreshToken !== 'string') {
+      return res.status(400).json({ error: 'Missing refreshToken in request body' })
+    }
+
+    if (provider === 'firebase') {
+      const apiKey = process.env.FIREBASE_API_KEY
+      if (!apiKey) return res.status(500).json({ error: 'Server misconfiguration: FIREBASE_API_KEY missing' })
+
+      const resp = await fetch(`https://securetoken.googleapis.com/v1/token?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken }),
+      })
+
+      const data = await resp.json()
+      if (!resp.ok) {
+        console.error('Firebase token refresh failed', data)
+        return res.status(400).json({ error: 'Firebase token refresh failed', details: data })
+      }
+
+      // data contains id_token, user_id, expires_in, refresh_token
+      return res.json(data)
+    }
+
+    // default: google
+    if (provider === 'google') {
+      const clientId = process.env.GOOGLE_CLIENT_ID
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET
+      if (!clientId || !clientSecret) return res.status(500).json({ error: 'Server misconfiguration: GOOGLE_CLIENT_ID/SECRET missing' })
+
+      const resp = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: clientId,
+          client_secret: clientSecret,
+          refresh_token: refreshToken,
+        }),
+      })
+
+      const data = await resp.json()
+      if (!resp.ok) {
+        console.error('Google token refresh failed', data)
+        return res.status(400).json({ error: 'Google token refresh failed', details: data })
+      }
+
+      // data contains access_token, expires_in, scope, token_type, id_token (maybe)
+      return res.json(data)
+    }
+
+    return res.status(400).json({ error: 'Unsupported provider. Use "google" or "firebase".' })
+  } catch (err) {
+    console.error('Refresh error:', err)
+    res.status(500).json({ error: 'Internal server error during token refresh' })
+  }
+})
+
 module.exports = router
