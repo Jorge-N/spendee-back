@@ -13,6 +13,9 @@ app.use(express.json())
 const apiRouter = require('./api')
 app.use('/api', apiRouter)
 
+const authRouter = require('./auth')
+app.use('/auth', authRouter)
+
 app.get("/", (req, res) => {
   res.status(200).send("Spendee API is running")
 })
@@ -996,6 +999,11 @@ app.get("/hasAPISecret", validateToken, async (req, res) => {
     console.error("Error verificando API Secret:", error)
     res.status(500).json({ error: "Error verificando API Secret" })
   }
+})
+
+//ruta inicial /
+app.get("/", (req, res) => {
+  res.status(200).send("Spendee API is running")
 })
 
 
