@@ -37,7 +37,7 @@ async function validateToken(req, res, next) {
             .status(403)
             .json({ error: "Token inválido", details: err.message })
         }
-        req.usuario = decoded
+        req.user = decoded
         next()
       },
     )
