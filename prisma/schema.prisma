@@ -56,9 +56,15 @@ model PresupuestoCategoria {
 }
 
 model Usuario {
-  id           String      @id 
-  nombre       String
-  email        String      @unique
-  isDeveloper  Boolean     @default(false)
-  APISecret    String?
+  id          String  @id
+  nombre      String
+  email       String  @unique
+  isDeveloper Boolean @default(false)
+  APISecret   String?
+}
+
+model Racha {
+  usuarioId   String   @id @unique
+  rachaActual Int
+  ultimaFecha DateTime
 }
