@@ -39,6 +39,43 @@ app.post("/gasto", validateToken, async (req, res) => {
         categoriaId: categoriaId,
       },
     })
+    const racha = await prisma.racha.findUnique({
+      where: { usuarioId: usuarioId },
+    })
+    const today = new Date().toISOString().split("T")[0]
+    const lastDay = racha?.ultimaFecha.toISOString().split("T")[0]
+    const yesterday = new Date(new Date().setDate(new Date().getDate() - 1))
+      .toISOString()
+      .split("T")[0]
+    if (racha == null) {
+      await prisma.racha.create({
+        data: {
+          usuarioId: usuarioId,
+          rachaActual: 1,
+          ultimaFecha: truncateToDate(new Date()),
+        },
+      })
+    } else if (lastDay == yesterday) {
+      console.log("Actualizando racha...", racha.rachaActual + 1)
+      await prisma.racha.update({
+        where: { usuarioId: usuarioId },
+        data: {
+          rachaActual: racha.rachaActual + 1,
+          ultimaFecha: truncateToDate(new Date()),
+        },
+      })
+    } else if (lastDay < yesterday) {
+      console.log("Reiniciando racha a 1")
+      await prisma.racha.update({
+        where: { usuarioId: usuarioId },
+        data: {
+          rachaActual: 1,
+          ultimaFecha: truncateToDate(new Date()),
+        },
+      })
+    } else if (lastDay == today) {
+      console.log("La racha ya fue actualizada hoy.")
+    }
     res.status(201).json(nuevoGasto)
   } catch (error) {
     res.status(400).json({ error: error.message })
