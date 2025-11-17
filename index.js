@@ -56,7 +56,6 @@ app.post("/gasto", validateToken, async (req, res) => {
         },
       })
     } else if (lastDay == yesterday) {
-      console.log("Actualizando racha...", racha.rachaActual + 1)
       await prisma.racha.update({
         where: { usuarioId: usuarioId },
         data: {
@@ -65,7 +64,6 @@ app.post("/gasto", validateToken, async (req, res) => {
         },
       })
     } else if (lastDay < yesterday) {
-      console.log("Reiniciando racha a 1")
       await prisma.racha.update({
         where: { usuarioId: usuarioId },
         data: {
@@ -74,7 +72,6 @@ app.post("/gasto", validateToken, async (req, res) => {
         },
       })
     } else if (lastDay == today) {
-      console.log("La racha ya fue actualizada hoy.")
     }
     res.status(201).json(nuevoGasto)
   } catch (error) {
@@ -283,7 +280,6 @@ app.post("/ingreso", validateToken, async (req, res) => {
         },
       })
     } else if (lastDay == yesterday) {
-      console.log("Actualizando racha...", racha.rachaActual + 1)
       await prisma.racha.update({
         where: { usuarioId: userId },
         data: {
@@ -292,7 +288,6 @@ app.post("/ingreso", validateToken, async (req, res) => {
         },
       })
     } else if (lastDay < yesterday) {
-      console.log("Reiniciando racha a 1")
       await prisma.racha.update({
         where: { usuarioId: userId },
         data: {
@@ -301,7 +296,6 @@ app.post("/ingreso", validateToken, async (req, res) => {
         },
       })
     } else if (lastDay == today) {
-      console.log("La racha ya fue actualizada hoy.")
     }
     res.status(201).json(nuevoIngreso)
   } catch (error) {
@@ -1079,6 +1073,21 @@ app.get("/hasAPISecret", validateToken, async (req, res) => {
   } catch (error) {
     console.error("Error verificando API Secret:", error)
     res.status(500).json({ error: "Error verificando API Secret" })
+  }
+})
+
+app.get("/racha/:userId", validateToken, async (req, res) => {
+  const { userId } = req.params
+  try {
+    const racha = await prisma.racha.findUnique({
+      where: { usuarioId: userId },
+    })
+    if (!racha) {
+      return res.status(404).json({ error: "Racha no encontrada" })
+    }
+    res.status(200).json(racha)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
   }
 })
 
