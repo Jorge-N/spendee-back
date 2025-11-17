@@ -10,11 +10,11 @@ const app = express()
 app.use(express.json())
 
 // Mount API routes protected by APISecret (x-api-key + x-api-user-id)
-const apiRouter = require('./api')
-app.use('/api', apiRouter)
+const apiRouter = require("./api")
+app.use("/api", apiRouter)
 
-const authRouter = require('./auth')
-app.use('/auth', authRouter)
+const authRouter = require("./auth")
+app.use("/auth", authRouter)
 
 app.get("/", (req, res) => {
   res.status(200).send("Spendee API is running")
@@ -219,7 +219,7 @@ app.put("/moverGastosCategoria", validateToken, async (req, res) => {
 
 app.post("/ingreso", validateToken, async (req, res) => {
   const { userId, ingreso, montoAnterior } = req.body
-  console.log(req.body) 
+  console.log(req.body)
   try {
     const nuevoIngreso = await prisma.ingreso.create({
       data: {
@@ -229,6 +229,43 @@ app.post("/ingreso", validateToken, async (req, res) => {
         fecha: new Date(),
       },
     })
+    const racha = await prisma.racha.findUnique({
+      where: { usuarioId: userId },
+    })
+    const today = new Date().toISOString().split("T")[0]
+    const lastDay = racha?.ultimaFecha.toISOString().split("T")[0]
+    const yesterday = new Date(new Date().setDate(new Date().getDate() - 1))
+      .toISOString()
+      .split("T")[0]
+    if (racha == null) {
+      await prisma.racha.create({
+        data: {
+          usuarioId: userId,
+          rachaActual: 1,
+          ultimaFecha: truncateToDate(new Date()),
+        },
+      })
+    } else if (lastDay == yesterday) {
+      console.log("Actualizando racha...", racha.rachaActual + 1)
+      await prisma.racha.update({
+        where: { usuarioId: userId },
+        data: {
+          rachaActual: racha.rachaActual + 1,
+          ultimaFecha: truncateToDate(new Date()),
+        },
+      })
+    } else if (lastDay < yesterday) {
+      console.log("Reiniciando racha a 1")
+      await prisma.racha.update({
+        where: { usuarioId: userId },
+        data: {
+          rachaActual: 1,
+          ultimaFecha: truncateToDate(new Date()),
+        },
+      })
+    } else if (lastDay == today) {
+      console.log("La racha ya fue actualizada hoy.")
+    }
     res.status(201).json(nuevoIngreso)
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -914,7 +951,7 @@ app.get("/getApiId", validateToken, async (req, res) => {
   res.json({ apiId: uid })
 })
 
-  //Generar API Secret
+//Generar API Secret
 app.post("/generateApiSecret", validateToken, async (req, res) => {
   // Extraer identificadores desde el token (compatible con distintos claim names de Firebase)
   const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
@@ -922,7 +959,9 @@ app.post("/generateApiSecret", validateToken, async (req, res) => {
   const nombre = req.usuario?.name || req.usuario?.displayName || ""
 
   if (!uid) {
-    return res.status(400).json({ error: "No se pudo obtener el identificador del usuario del token" })
+    return res.status(400).json({
+      error: "No se pudo obtener el identificador del usuario del token",
+    })
   }
 
   const crypto = require("crypto")
@@ -965,9 +1004,11 @@ app.post("/generateApiSecret", validateToken, async (req, res) => {
 
 app.delete("/deleteApiSecret", validateToken, async (req, res) => {
   console.log("Eliminando API Secret del usuario")
-  const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid 
+  const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
   if (!uid) {
-    return res.status(400).json({ error: "No se pudo obtener el identificador del usuario del token" })
+    return res.status(400).json({
+      error: "No se pudo obtener el identificador del usuario del token",
+    })
   }
   try {
     await prisma.usuario.update({
@@ -979,14 +1020,17 @@ app.delete("/deleteApiSecret", validateToken, async (req, res) => {
   } catch (error) {
     console.error("Error eliminando API Secret:", error)
     res.status(500).json({ error: "Error eliminando API Secret" })
-  }})
+  }
+})
 
 app.get("/hasAPISecret", validateToken, async (req, res) => {
   console.log("Verificando si el usuario tiene API Secret")
   const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
 
   if (!uid) {
-    return res.status(400).json({ error: "No se pudo obtener el identificador del usuario del token" })
+    return res.status(400).json({
+      error: "No se pudo obtener el identificador del usuario del token",
+    })
   }
   try {
     const user = await prisma.usuario.findUnique({
@@ -1006,11 +1050,10 @@ app.get("/", (req, res) => {
   res.status(200).send("Spendee API is running")
 })
 
-
-
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
 })
 
-module.exports = serverless(app)
+//module.exports = serverless(app)
+module.exports = app
