@@ -16,6 +16,9 @@ app.use("/api", apiRouter)
 const authRouter = require("./auth")
 app.use("/auth", authRouter)
 
+const cron = require("./cron")
+app.use("/cron", cron)
+
 app.get("/", (req, res) => {
   res.status(200).send("Spendee API is running")
 })
@@ -53,6 +56,7 @@ app.post("/gasto", validateToken, async (req, res) => {
           usuarioId: usuarioId,
           rachaActual: 1,
           ultimaFecha: truncateToDate(new Date()),
+          isInactive: false,
         },
       })
     } else if (lastDay == yesterday) {
