@@ -13,6 +13,10 @@ function verifyCronToken(req, res, next) {
   next()
 }
 
+router.get("/", (req, res) => {
+  res.send("Cron job endpoint")
+})
+
 router.post("/update-rachas", verifyCronToken, async (req, res) => {
   try {
     const now = new Date()
