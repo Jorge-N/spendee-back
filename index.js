@@ -271,6 +271,7 @@ app.post("/ingreso", validateToken, async (req, res) => {
     const yesterday = new Date(new Date().setDate(new Date().getDate() - 1))
       .toISOString()
       .split("T")[0]
+    console.log({ today, lastDay, yesterday })
     if (racha == null) {
       await prisma.racha.create({
         data: {
@@ -280,6 +281,7 @@ app.post("/ingreso", validateToken, async (req, res) => {
         },
       })
     } else if (lastDay == yesterday) {
+      console.log("Aumentando racha")
       await prisma.racha.update({
         where: { usuarioId: userId },
         data: {
@@ -1083,6 +1085,7 @@ app.get("/racha/:userId", validateToken, async (req, res) => {
       where: { usuarioId: userId },
     })
     if (!racha) {
+      console.log("Racha no encontrada para el usuario:", userId)
       return res.status(404).json({ error: "Racha no encontrada" })
     }
     res.status(200).json(racha)
@@ -1096,10 +1099,10 @@ app.get("/", (req, res) => {
   res.status(200).send("Spendee API is running")
 })
 
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
 })
 
-//module.exports = serverless(app)
-module.exports = app
+module.exports = serverless(app)
+//module.exports = app
