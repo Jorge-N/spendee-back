@@ -67,4 +67,5 @@ model Racha {
   usuarioId   String   @id @unique
   rachaActual Int
   ultimaFecha DateTime
+  isInactive  Boolean  @default(true)
 }
