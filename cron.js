@@ -30,9 +30,6 @@ router.post("/update-rachas", verifyCronToken, async (req, res) => {
     const anteayer = new Date(nowAR)
     anteayer.setDate(anteayer.getDate() - 2)
     anteayer.setHours(now.getHours() - 3, 0, 0, 0)
-    console.log("Ahora:", nowAR)
-    console.log("Ayer:", ayer)
-    console.log("Anteayer:", anteayer)
     await prisma.racha.updateMany({
       where: {
         ultimaFecha: {
