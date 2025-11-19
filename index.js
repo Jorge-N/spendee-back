@@ -214,7 +214,7 @@ app.delete("/gasto/:id", validateToken, async (req, res) => {
 app.put("/moverGastosCategoria", validateToken, async (req, res) => {
   const { categoriaOrigenId, categoriaDestinoId } = req.body
   try {
-    const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
     if (!categoriaOrigenId || !categoriaDestinoId) {
       return res
         .status(400)
@@ -569,7 +569,8 @@ app.get("/balance/:userId", validateToken, async (req, res) => {
 app.post("/customCategory", validateToken, async (req, res) => {
   const { nombre, icono, color, descripcion } = req.body
   try {
-    const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
+    console.log(req.user)
     const nuevaCategoria = await prisma.categorias.create({
       data: {
         usuarioId: uid,
@@ -587,12 +588,10 @@ app.post("/customCategory", validateToken, async (req, res) => {
 
 app.get("/categories", validateToken, async (req, res) => {
   const { month, year } = req.query
+  console.log(req.user)
   try {
     const uid =
-      req.usuario?.sub ||
-      req.usuario?.user_id ||
-      req.usuario?.uid ||
-      req.query.userId
+      req.user?.sub || req.user?.user_id || req.user?.uid || req.query.userId
 
     const categorias = await prisma.categorias.findMany({
       where: { OR: [{ usuarioId: "0" }, { usuarioId: uid }] },
@@ -621,7 +620,6 @@ app.get("/categories", validateToken, async (req, res) => {
           dateFilter.fecha = { gte: start, lt: end }
         }
       }
-
       const sums = await prisma.gasto.groupBy({
         by: ["categoriaId"],
         where: Object.assign({ usuarioId: uid }, dateFilter),
@@ -629,6 +627,7 @@ app.get("/categories", validateToken, async (req, res) => {
           gasto: true,
         },
       })
+
       for (const s of sums) {
         sumGastos.set(s.categoriaId, s._sum?.gasto ?? 0)
       }
@@ -651,7 +650,7 @@ app.get("/categories", validateToken, async (req, res) => {
 app.delete("/deleteCategory/:id", validateToken, async (req, res) => {
   const { id } = req.params
   try {
-    const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
 
     const category = await prisma.categorias.findUnique({
       where: { id: Number(id) },
@@ -688,7 +687,7 @@ app.put("/modifyCategory/:id", validateToken, async (req, res) => {
   const { categoria, descripcion, icono, color } = req.body
 
   try {
-    const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
     const categoriaExistente = await prisma.categorias.findUnique({
       where: { id: parseInt(id) },
     })
@@ -988,7 +987,7 @@ app.get("/budget/:budgetId", validateToken, async (req, res) => {
 
 //get API ID
 app.get("/getApiId", validateToken, async (req, res) => {
-  const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+  const uid = req.user?.sub || req.user?.user_id || req.user?.uid
   console.log("Obteniendo API User ID:", uid)
   res.json({ apiId: uid })
 })
@@ -1046,7 +1045,7 @@ app.post("/generateApiSecret", validateToken, async (req, res) => {
 
 app.delete("/deleteApiSecret", validateToken, async (req, res) => {
   console.log("Eliminando API Secret del usuario")
-  const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+  const uid = req.user?.sub || req.user?.user_id || req.user?.uid
   if (!uid) {
     return res.status(400).json({
       error: "No se pudo obtener el identificador del usuario del token",
@@ -1067,7 +1066,7 @@ app.delete("/deleteApiSecret", validateToken, async (req, res) => {
 
 app.get("/hasAPISecret", validateToken, async (req, res) => {
   console.log("Verificando si el usuario tiene API Secret")
-  const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
+  const uid = req.user?.sub || req.user?.user_id || req.user?.uid
 
   if (!uid) {
     return res.status(400).json({
@@ -1113,5 +1112,5 @@ app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
 })
 
-module.exports = serverless(app)
-//module.exports = app
+//module.exports = serverless(app)
+module.exports = app
