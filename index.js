@@ -65,14 +65,7 @@ app.post("/gasto", validateToken, async (req, res) => {
         data: {
           rachaActual: racha.rachaActual + 1,
           ultimaFecha: truncateToDate(new Date()),
-        },
-      })
-    } else if (lastDay < yesterday) {
-      await prisma.racha.update({
-        where: { usuarioId: usuarioId },
-        data: {
-          rachaActual: 1,
-          ultimaFecha: truncateToDate(new Date()),
+          isInactive: false,
         },
       })
     } else if (lastDay == today) {
@@ -282,6 +275,7 @@ app.post("/ingreso", validateToken, async (req, res) => {
           usuarioId: userId,
           rachaActual: 1,
           ultimaFecha: truncateToDate(new Date()),
+          isInactive: false,
         },
       })
     } else if (lastDay == yesterday) {
@@ -290,14 +284,6 @@ app.post("/ingreso", validateToken, async (req, res) => {
         where: { usuarioId: userId },
         data: {
           rachaActual: racha.rachaActual + 1,
-          ultimaFecha: truncateToDate(new Date()),
-        },
-      })
-    } else if (lastDay < yesterday) {
-      await prisma.racha.update({
-        where: { usuarioId: userId },
-        data: {
-          rachaActual: 1,
           ultimaFecha: truncateToDate(new Date()),
         },
       })
@@ -1108,5 +1094,5 @@ app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
 })
 
-module.exports = serverless(app)
-//module.exports = app
+//module.exports = serverless(app)
+module.exports = app

@@ -21,19 +21,23 @@ router.post("/update-rachas", verifyCronToken, async (req, res) => {
   try {
     const now = new Date()
 
-    const ayer = new Date(now)
+    const nowAR = new Date(now.getTime() - 3 * 60 * 60 * 1000)
+
+    const ayer = new Date(nowAR)
     ayer.setDate(ayer.getDate() - 1)
-    ayer.setHours(0, 0, 0, 0)
+    ayer.setHours(now.getHours() - 3, 0, 0, 0)
 
-    const anteayer = new Date(now)
+    const anteayer = new Date(nowAR)
     anteayer.setDate(anteayer.getDate() - 2)
-    anteayer.setHours(0, 0, 0, 0)
-
+    anteayer.setHours(now.getHours() - 3, 0, 0, 0)
+    console.log("Ahora:", nowAR)
+    console.log("Ayer:", ayer)
+    console.log("Anteayer:", anteayer)
     await prisma.racha.updateMany({
       where: {
         ultimaFecha: {
           gte: ayer,
-          lt: new Date(ayer.getTime() + 24 * 60 * 60 * 1000),
+          lt: new Date(ayer.getTime() + 21 * 60 * 60 * 1000),
         },
       },
       data: {
@@ -45,15 +49,18 @@ router.post("/update-rachas", verifyCronToken, async (req, res) => {
       where: {
         ultimaFecha: {
           gte: anteayer,
-          lt: new Date(anteayer.getTime() + 24 * 60 * 60 * 1000),
+          lt: new Date(anteayer.getTime() + 21 * 60 * 60 * 1000),
         },
       },
       data: {
         rachaActual: 0,
+        isInactive: true,
       },
     })
 
-    res.json({ message: "Rachas actualizadas correctamente" })
+    res.json({
+      message: "Rachas actualizadas correctamente",
+    })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: "Error actualizando rachas" })
