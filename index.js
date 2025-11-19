@@ -70,6 +70,15 @@ app.post("/gasto", validateToken, async (req, res) => {
         },
       })
     } else if (lastDay == today) {
+    } else if (lastDay < yesterday) {
+      await prisma.racha.update({
+        where: { usuarioId: usuarioId },
+        data: {
+          rachaActual: 1,
+          ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+          isInactive: false,
+        },
+      })
     }
     res.status(201).json(nuevoGasto)
   } catch (error) {
@@ -289,6 +298,15 @@ app.post("/ingreso", validateToken, async (req, res) => {
         },
       })
     } else if (lastDay == today) {
+    } else if (lastDay < yesterday) {
+      await prisma.racha.update({
+        where: { usuarioId: userId },
+        data: {
+          rachaActual: 1,
+          ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+          isInactive: false,
+        },
+      })
     }
     res.status(201).json(nuevoIngreso)
   } catch (error) {
