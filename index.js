@@ -264,6 +264,7 @@ app.post("/ingreso", validateToken, async (req, res) => {
     const racha = await prisma.racha.findUnique({
       where: { usuarioId: userId },
     })
+    const now = new Date()
     const today = new Date().toISOString().split("T")[0]
     const lastDay = racha?.ultimaFecha.toISOString().split("T")[0]
     const yesterday = new Date(new Date().setDate(new Date().getDate() - 1))
