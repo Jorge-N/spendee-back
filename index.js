@@ -272,7 +272,7 @@ app.post("/ingreso", validateToken, async (req, res) => {
     if (racha == null) {
       await prisma.racha.create({
         data: {
-          usuarioId: usuarioId,
+          usuarioId: userId,
           rachaActual: 1,
           ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
           isInactive: false,
@@ -280,7 +280,7 @@ app.post("/ingreso", validateToken, async (req, res) => {
       })
     } else if (lastDay == yesterday) {
       await prisma.racha.update({
-        where: { usuarioId: usuarioId },
+        where: { usuarioId: userId },
         data: {
           rachaActual: racha.rachaActual + 1,
           ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
