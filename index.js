@@ -45,6 +45,7 @@ app.post("/gasto", validateToken, async (req, res) => {
     const racha = await prisma.racha.findUnique({
       where: { usuarioId: usuarioId },
     })
+    const now = new Date()
     const today = new Date().toISOString().split("T")[0]
     const lastDay = racha?.ultimaFecha.toISOString().split("T")[0]
     const yesterday = new Date(new Date().setDate(new Date().getDate() - 1))
@@ -55,7 +56,7 @@ app.post("/gasto", validateToken, async (req, res) => {
         data: {
           usuarioId: usuarioId,
           rachaActual: 1,
-          ultimaFecha: truncateToDate(new Date()),
+          ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
           isInactive: false,
         },
       })
@@ -64,7 +65,7 @@ app.post("/gasto", validateToken, async (req, res) => {
         where: { usuarioId: usuarioId },
         data: {
           rachaActual: racha.rachaActual + 1,
-          ultimaFecha: truncateToDate(new Date()),
+          ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
           isInactive: false,
         },
       })
@@ -268,23 +269,22 @@ app.post("/ingreso", validateToken, async (req, res) => {
     const yesterday = new Date(new Date().setDate(new Date().getDate() - 1))
       .toISOString()
       .split("T")[0]
-    console.log({ today, lastDay, yesterday })
     if (racha == null) {
       await prisma.racha.create({
         data: {
-          usuarioId: userId,
+          usuarioId: usuarioId,
           rachaActual: 1,
-          ultimaFecha: truncateToDate(new Date()),
+          ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
           isInactive: false,
         },
       })
     } else if (lastDay == yesterday) {
-      console.log("Aumentando racha")
       await prisma.racha.update({
-        where: { usuarioId: userId },
+        where: { usuarioId: usuarioId },
         data: {
           rachaActual: racha.rachaActual + 1,
-          ultimaFecha: truncateToDate(new Date()),
+          ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+          isInactive: false,
         },
       })
     } else if (lastDay == today) {
@@ -1094,5 +1094,5 @@ app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
 })
 
-//module.exports = serverless(app)
-module.exports = app
+module.exports = serverless(app)
+//module.exports = app

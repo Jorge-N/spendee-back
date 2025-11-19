@@ -2,6 +2,7 @@
 const express = require("express")
 const router = express.Router()
 const { PrismaClient } = require("@prisma/client")
+const truncateToDate = require("./helpers/truncateToDate.js")
 
 const prisma = new PrismaClient()
 
@@ -14,22 +15,30 @@ function verifyCronToken(req, res, next) {
 }
 
 router.get("/", (req, res) => {
-  res.send("Cron job endpoint")
+  const now = new Date()
+  const today = new Date().toISOString().split("T")[0]
+  const yesterday = new Date(new Date().setDate(new Date().getDate() - 1))
+  console.log("Today:", today)
+  console.log("Yesterday:", yesterday.toISOString().split("T")[0])
+  console.log(new Date(now.getTime() - 3 * 60 * 60 * 1000))
+  res.json({ message: "Cron endpoint is working" })
 })
 
 router.post("/update-rachas", verifyCronToken, async (req, res) => {
   try {
     const now = new Date()
-
+    console.log("Current time (UTC):", now)
     const nowAR = new Date(now.getTime() - 3 * 60 * 60 * 1000)
-
+    console.log("Current time (Argentina):", nowAR)
     const ayer = new Date(nowAR)
     ayer.setDate(ayer.getDate() - 1)
-    ayer.setHours(now.getHours() - 3, 0, 0, 0)
+    ayer.setHours(-3, 0, 0, 0)
+    console.log("Ayer (Argentina):", ayer)
 
     const anteayer = new Date(nowAR)
     anteayer.setDate(anteayer.getDate() - 2)
-    anteayer.setHours(now.getHours() - 3, 0, 0, 0)
+    anteayer.setHours(-3, 0, 0, 0)
+    console.log("Anteayer (Argentina):", anteayer)
     await prisma.racha.updateMany({
       where: {
         ultimaFecha: {
