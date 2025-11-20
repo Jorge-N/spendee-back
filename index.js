@@ -19,6 +19,9 @@ app.use("/auth", authRouter)
 const cron = require("./cron")
 app.use("/cron", cron)
 
+const levelsRouter = require("./levels/levels")
+app.use("/levels", levelsRouter)
+
 app.get("/", (req, res) => {
   res.status(200).send("Spendee API is running")
 })
