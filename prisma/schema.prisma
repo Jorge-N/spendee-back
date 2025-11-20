@@ -69,3 +69,37 @@ model Racha {
   ultimaFecha DateTime
   isInactive  Boolean  @default(true)
 }
+
+model Niveles {
+  id            Int            @id @default(autoincrement())
+  objetivos     Objetivos[]
+  nivelUsuarios NivelUsuario[]
+}
+
+model Objetivos {
+  id                Int                @id @default(autoincrement())
+  descripcion       String
+  condicion         String
+  nivelId           Int
+  niveles           Niveles            @relation(fields: [nivelId], references: [id])
+  objetivosUsuarios ObjetivosUsuario[]
+}
+
+model NivelUsuario {
+  id                Int                @id @default(autoincrement())
+  usuarioId         String             @unique
+  nivelId           Int
+  niveles           Niveles            @relation(fields: [nivelId], references: [id])
+  objetivosUsuarios ObjetivosUsuario[]
+}
+
+model ObjetivosUsuario {
+  id           Int          @id @default(autoincrement())
+  usuarioNivel Int
+  objetivoId   Int
+  isCompleted  Boolean      @default(false)
+  nivelUsuario NivelUsuario @relation(fields: [usuarioNivel], references: [id])
+  objetivo     Objetivos    @relation(fields: [objetivoId], references: [id])
+
+  @@unique([usuarioNivel, objetivoId])
+}
