@@ -21,6 +21,17 @@ router.get("/", (req, res) => {
   console.log("Today:", today)
   console.log("Yesterday:", yesterday.toISOString().split("T")[0])
   console.log(new Date(now.getTime() - 3 * 60 * 60 * 1000))
+  const nowAR = new Date(now.getTime() - 3 * 60 * 60 * 1000)
+  const ayer = new Date(nowAR)
+  console.log("Ayer before:", ayer.getUTCDate() - 1)
+  ayer.setDate(ayer.getDate() - 1)
+  ayer.setHours(-3, 0, 0, 0)
+  const anteayer = new Date(nowAR)
+  anteayer.setDate(anteayer.getUTCDate() - 2)
+  anteayer.setHours(-3, 0, 0, 0)
+  console.log("Now AR:", nowAR)
+  console.log("Ayer AR:", ayer)
+  console.log("Anteayer AR:", anteayer)
   res.json({ message: "Cron endpoint is working" })
 })
 
@@ -29,11 +40,11 @@ router.post("/update-rachas", verifyCronToken, async (req, res) => {
     const now = new Date()
     const nowAR = new Date(now.getTime() - 3 * 60 * 60 * 1000)
     const ayer = new Date(nowAR)
-    ayer.setDate(ayer.getDate() - 1)
+    ayer.setDate(ayer.getUTCDate() - 1)
     ayer.setHours(-3, 0, 0, 0)
 
     const anteayer = new Date(nowAR)
-    anteayer.setDate(anteayer.getDate() - 2)
+    anteayer.setDate(anteayer.getUTCDate() - 2)
     anteayer.setHours(-3, 0, 0, 0)
     await prisma.racha.updateMany({
       where: {
