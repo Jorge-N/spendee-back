@@ -24,7 +24,7 @@ router.get("/", (req, res) => {
   const nowAR = new Date(now.getTime() - 3 * 60 * 60 * 1000)
   const ayer = new Date(nowAR)
   console.log("Ayer before:", ayer.getUTCDate() - 1)
-  ayer.setDate(ayer.getDate() - 1)
+  ayer.setDate(ayer.getUTCDate() - 1)
   ayer.setHours(-3, 0, 0, 0)
   const anteayer = new Date(nowAR)
   anteayer.setDate(anteayer.getUTCDate() - 2)
@@ -32,6 +32,7 @@ router.get("/", (req, res) => {
   console.log("Now AR:", nowAR)
   console.log("Ayer AR:", ayer)
   console.log("Anteayer AR:", anteayer)
+  console.log("contra", new Date(ayer.getTime() + 24 * 60 * 60 * 1000))
   res.json({ message: "Cron endpoint is working" })
 })
 
@@ -50,7 +51,7 @@ router.post("/update-rachas", verifyCronToken, async (req, res) => {
       where: {
         ultimaFecha: {
           gte: ayer,
-          lt: new Date(ayer.getTime() + 21 * 60 * 60 * 1000),
+          lt: new Date(ayer.getTime() + 24 * 60 * 60 * 1000),
         },
       },
       data: {
@@ -62,7 +63,7 @@ router.post("/update-rachas", verifyCronToken, async (req, res) => {
       where: {
         ultimaFecha: {
           gte: anteayer,
-          lt: new Date(anteayer.getTime() + 21 * 60 * 60 * 1000),
+          lt: new Date(anteayer.getTime() + 24 * 60 * 60 * 1000),
         },
       },
       data: {
