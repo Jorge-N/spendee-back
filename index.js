@@ -49,9 +49,10 @@ app.post("/gasto", validateToken, async (req, res) => {
       where: { usuarioId: usuarioId },
     })
     const now = new Date()
-    const today = new Date().toISOString().split("T")[0]
+    const nowAR = new Date(now.getTime() - 3 * 60 * 60 * 1000)
+    const today = new Date(nowAR).toISOString().split("T")[0]
     const lastDay = racha?.ultimaFecha.toISOString().split("T")[0]
-    const yesterday = new Date(new Date().setDate(new Date().getDate() - 1))
+    const yesterday = new Date(nowAR.getTime() - 24 * 60 * 60 * 1000)
       .toISOString()
       .split("T")[0]
     if (racha == null) {
@@ -59,7 +60,7 @@ app.post("/gasto", validateToken, async (req, res) => {
         data: {
           usuarioId: usuarioId,
           rachaActual: 1,
-          ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+          ultimaFecha: nowAR,
           isInactive: false,
         },
       })
@@ -68,7 +69,7 @@ app.post("/gasto", validateToken, async (req, res) => {
         where: { usuarioId: usuarioId },
         data: {
           rachaActual: racha.rachaActual + 1,
-          ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+          ultimaFecha: nowAR,
           isInactive: false,
         },
       })
@@ -78,7 +79,7 @@ app.post("/gasto", validateToken, async (req, res) => {
         where: { usuarioId: usuarioId },
         data: {
           rachaActual: 1,
-          ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+          ultimaFecha: nowAR,
           isInactive: false,
         },
       })
@@ -263,7 +264,6 @@ app.put("/moverGastosCategoria", validateToken, async (req, res) => {
 
 app.post("/ingreso", validateToken, async (req, res) => {
   const { userId, ingreso, montoAnterior } = req.body
-  console.log(req.body)
   try {
     const nuevoIngreso = await prisma.ingreso.create({
       data: {
@@ -277,9 +277,10 @@ app.post("/ingreso", validateToken, async (req, res) => {
       where: { usuarioId: userId },
     })
     const now = new Date()
-    const today = new Date().toISOString().split("T")[0]
+    const nowAR = new Date(now.getTime() - 3 * 60 * 60 * 1000)
+    const today = new Date(nowAR).toISOString().split("T")[0]
     const lastDay = racha?.ultimaFecha.toISOString().split("T")[0]
-    const yesterday = new Date(new Date().setDate(new Date().getDate() - 1))
+    const yesterday = new Date(nowAR.getTime() - 24 * 60 * 60 * 1000)
       .toISOString()
       .split("T")[0]
     if (racha == null) {
@@ -287,7 +288,7 @@ app.post("/ingreso", validateToken, async (req, res) => {
         data: {
           usuarioId: userId,
           rachaActual: 1,
-          ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+          ultimaFecha: nowAR,
           isInactive: false,
         },
       })
@@ -296,7 +297,7 @@ app.post("/ingreso", validateToken, async (req, res) => {
         where: { usuarioId: userId },
         data: {
           rachaActual: racha.rachaActual + 1,
-          ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+          ultimaFecha: nowAR,
           isInactive: false,
         },
       })
@@ -306,7 +307,7 @@ app.post("/ingreso", validateToken, async (req, res) => {
         where: { usuarioId: userId },
         data: {
           rachaActual: 1,
-          ultimaFecha: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+          ultimaFecha: nowAR,
           isInactive: false,
         },
       })
@@ -573,7 +574,6 @@ app.post("/customCategory", validateToken, async (req, res) => {
   const { nombre, icono, color, descripcion } = req.body
   try {
     const uid = req.user?.sub || req.user?.user_id || req.user?.uid
-    console.log(req.user)
     const nuevaCategoria = await prisma.categorias.create({
       data: {
         usuarioId: uid,
@@ -591,7 +591,6 @@ app.post("/customCategory", validateToken, async (req, res) => {
 
 app.get("/categories", validateToken, async (req, res) => {
   const { month, year } = req.query
-  console.log(req.user)
   try {
     const uid =
       req.user?.sub || req.user?.user_id || req.user?.uid || req.query.userId

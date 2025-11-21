@@ -16,23 +16,8 @@ function verifyCronToken(req, res, next) {
 
 router.get("/", (req, res) => {
   const now = new Date()
-  const today = new Date().toISOString().split("T")[0]
-  const yesterday = new Date(new Date().setDate(new Date().getDate() - 1))
-  console.log("Today:", today)
-  console.log("Yesterday:", yesterday.toISOString().split("T")[0])
-  console.log(new Date(now.getTime() - 3 * 60 * 60 * 1000))
-  const nowAR = new Date(now.getTime() - 3 * 60 * 60 * 1000)
-  const ayer = new Date(nowAR)
-  console.log("Ayer before:", ayer.getUTCDate() - 1)
-  ayer.setDate(ayer.getUTCDate() - 1)
-  ayer.setHours(-3, 0, 0, 0)
-  const anteayer = new Date(nowAR)
-  anteayer.setDate(anteayer.getUTCDate() - 2)
-  anteayer.setHours(-3, 0, 0, 0)
-  console.log("Now AR:", nowAR)
-  console.log("Ayer AR:", ayer)
-  console.log("Anteayer AR:", anteayer)
-  console.log("contra", new Date(ayer.getTime() + 24 * 60 * 60 * 1000))
+
+  console.log("new date", new Date(now.getTime() * 60 * 60 * 1000))
   res.json({ message: "Cron endpoint is working" })
 })
 
