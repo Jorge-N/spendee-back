@@ -10,17 +10,20 @@ const app = express()
 app.use(express.json())
 
 // Mount API routes protected by APISecret (x-api-key + x-api-user-id)
-const apiRouter = require("./api")
+const apiRouter = require("./routes/api.js")
 app.use("/api", apiRouter)
 
-const authRouter = require("./auth")
+const authRouter = require("./routes/auth.js")
 app.use("/auth", authRouter)
 
-const cron = require("./cron")
+const cron = require("./routes/cron.js")
 app.use("/cron", cron)
 
-const levelsRouter = require("./levels/levels")
+const levelsRouter = require("./routes/levels/levels.js")
 app.use("/levels", levelsRouter)
+
+const expenseRouter = require("./routes/expenses/expense.js")
+app.use("/expense", expenseRouter)
 
 app.get("/", (req, res) => {
   res.status(200).send("Spendee API is running")
@@ -33,187 +36,7 @@ app.get("/test-jwt", validateToken, (req, res) => {
   })
 })
 
-app.post("/gasto", validateToken, async (req, res) => {
-  const { usuarioId, gasto, montoAnterior, categoriaId } = req.body
-  try {
-    const nuevoGasto = await prisma.gasto.create({
-      data: {
-        usuarioId: usuarioId,
-        gasto,
-        montoAnterior,
-        fecha: new Date(),
-        categoriaId: categoriaId,
-      },
-    })
-    const racha = await prisma.racha.findUnique({
-      where: { usuarioId: usuarioId },
-    })
-    const now = new Date()
-    const nowAR = new Date(now.getTime() - 3 * 60 * 60 * 1000)
-    const today = new Date(nowAR).toISOString().split("T")[0]
-    const lastDay = racha?.ultimaFecha.toISOString().split("T")[0]
-    const yesterday = new Date(nowAR.getTime() - 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0]
-    if (racha == null) {
-      await prisma.racha.create({
-        data: {
-          usuarioId: usuarioId,
-          rachaActual: 1,
-          ultimaFecha: nowAR,
-          isInactive: false,
-        },
-      })
-    } else if (lastDay == yesterday) {
-      await prisma.racha.update({
-        where: { usuarioId: usuarioId },
-        data: {
-          rachaActual: racha.rachaActual + 1,
-          ultimaFecha: nowAR,
-          isInactive: false,
-        },
-      })
-    } else if (lastDay == today) {
-    } else if (lastDay < yesterday) {
-      await prisma.racha.update({
-        where: { usuarioId: usuarioId },
-        data: {
-          rachaActual: 1,
-          ultimaFecha: nowAR,
-          isInactive: false,
-        },
-      })
-    }
-    res.status(201).json(nuevoGasto)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
 
-app.get("/gasto", validateToken, async (req, res) => {
-  try {
-    const { userId, month, year, categoryId, limit, order = "asc" } = req.query
-
-    if (!userId || typeof userId !== "string") {
-      return res.status(400).json({ error: "Missing or invalid userId" })
-    }
-
-    const filters = {
-      where: {
-        usuarioId: userId,
-        ...(categoryId && { categoriaId: parseInt(categoryId) }),
-        ...(month &&
-          year && {
-            fecha: {
-              gte: new Date(Number(year), Number(month) - 1, 1),
-              lt: new Date(Number(year), Number(month), 1),
-            },
-          }),
-      },
-      orderBy: {
-        fecha: order === "desc" ? "desc" : "asc",
-      },
-      ...(limit && { take: parseInt(limit) }),
-    }
-
-    const gastos = await prisma.gasto.findMany(filters)
-    res.json(gastos)
-  } catch (error) {
-    console.error("Error fetching gastos:", error)
-    res.status(500).json({ error: "Internal server error" })
-  }
-})
-
-app.get("/gasto/agrupado", validateToken, async (req, res) => {
-  try {
-    const { userId } = req.query
-
-    if (!userId || typeof userId !== "string") {
-      return res.status(400).json({ error: "Missing or invalid userId" })
-    }
-
-    const groupedExpenses = await prisma.$queryRaw`
-      SELECT 
-        TO_CHAR("fecha", 'YYYY-MM') AS month,
-        json_agg(
-          json_build_object(
-            'id', "id",
-            'usuarioId', "usuarioId",
-            'gasto', "gasto",
-            'fecha', "fecha",
-            'montoAnterior', "montoAnterior",
-            'categoriaId', "categoriaId"
-          )
-          ORDER BY "fecha" DESC
-        ) AS items
-      FROM "Gasto"
-      WHERE "usuarioId" = ${userId}
-      GROUP BY month
-      ORDER BY month DESC;
-    `
-
-    res.json(groupedExpenses)
-  } catch (error) {
-    console.error("Error grouping expenses:", error)
-    res.status(500).json({ error: "Internal server error" })
-  }
-})
-
-app.get("/gastoPorId/:id", validateToken, async (req, res) => {
-  const id = parseInt(req.params.id)
-  if (isNaN(id)) {
-    return res.status(400).json({ error: "ID inválido" })
-  }
-
-  try {
-    const expense = await prisma.gasto.findUnique({
-      where: { id },
-    })
-    if (!expense) return res.status(404).json({ error: "Gasto no encontrado" })
-    res.status(200).json(expense)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
-
-app.put("/gastoPorId/:id", validateToken, async (req, res) => {
-  const id = parseInt(req.params.id)
-  const { toCategoryId } = req.body
-  const toCategoryIdInt = parseInt(toCategoryId)
-
-  if (isNaN(id)) {
-    return res.status(400).json({ error: "ID inválido" })
-  }
-
-  try {
-    await prisma.gasto.update({
-      where: { id },
-      data: { categoriaId: toCategoryIdInt },
-    })
-    res.status(200).json({ message: "Categoría del gasto actualizada" })
-  } catch (error) {
-    console.log(error)
-    res.status(400).json({ message: "Error al extraer categorias o gasto" })
-  }
-})
-
-app.delete("/gasto/:id", validateToken, async (req, res) => {
-  const id = parseInt(req.params.id)
-  if (isNaN(id)) {
-    return res.status(400).json({ error: "ID inválido" })
-  }
-
-  try {
-    const deletedExpense = await prisma.gasto.delete({
-      where: { id },
-    })
-    res
-      .status(200)
-      .json({ message: "Gasto eliminado correctamente", deletedExpense })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
 
 app.put("/moverGastosCategoria", validateToken, async (req, res) => {
   const { categoriaOrigenId, categoriaDestinoId } = req.body
@@ -1109,7 +932,7 @@ app.get("/", (req, res) => {
   res.status(200).send("Spendee API is running")
 })
 
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
 })
