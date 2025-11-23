@@ -25,6 +25,12 @@ app.use("/levels", levelsRouter)
 const expenseRouter = require("./routes/expenses/expense.js")
 app.use("/expense", expenseRouter)
 
+const categoryRouter = require("./routes/category/category.js")
+app.use("/categories", categoryRouter)
+
+const incomesRouter = require("./routes/incomes/incomes.js")
+app.use("/income", incomesRouter)
+
 app.get("/", (req, res) => {
   res.status(200).send("Spendee API is running")
 })
@@ -38,194 +44,8 @@ app.get("/test-jwt", validateToken, (req, res) => {
 
 
 
-app.put("/moverGastosCategoria", validateToken, async (req, res) => {
-  const { categoriaOrigenId, categoriaDestinoId } = req.body
-  try {
-    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
-    if (!categoriaOrigenId || !categoriaDestinoId) {
-      return res
-        .status(400)
-        .json({ error: "Debes indicar las categorías origen y destino." })
-    }
-    const [origen, destino] = await Promise.all([
-      prisma.categorias.findFirst({
-        where: { id: parseInt(categoriaOrigenId), usuarioId: uid },
-      }),
-      prisma.categorias.findFirst({
-        where: { id: parseInt(categoriaDestinoId) },
-      }),
-    ])
-    if (!origen) {
-      return res
-        .status(404)
-        .json({ error: "La categoría de origen no existe o no te pertenece." })
-    }
-    if (!destino) {
-      return res
-        .status(404)
-        .json({ error: "La categoría de destino no existe o no te pertenece." })
-    }
-    const resultado = await prisma.gasto.updateMany({
-      where: {
-        usuarioId: uid,
-        categoriaId: parseInt(categoriaOrigenId),
-      },
-      data: {
-        categoriaId: parseInt(categoriaDestinoId),
-      },
-    })
 
-    res.status(200).json({
-      message: `Se movieron ${resultado.count} gastos de la categoría ${origen.nombre} a ${destino.nombre}.`,
-      cantidad: resultado.count,
-    })
-  } catch (error) {
-    console.error("Error moviendo gastos de categoría:", error)
-    res.status(500).json({ error: "" })
-  }
-})
-
-app.post("/ingreso", validateToken, async (req, res) => {
-  const { userId, ingreso, montoAnterior } = req.body
-  try {
-    const nuevoIngreso = await prisma.ingreso.create({
-      data: {
-        usuarioId: userId,
-        ingreso,
-        montoAnterior,
-        fecha: new Date(),
-      },
-    })
-    const racha = await prisma.racha.findUnique({
-      where: { usuarioId: userId },
-    })
-    const now = new Date()
-    const nowAR = new Date(now.getTime() - 3 * 60 * 60 * 1000)
-    const today = new Date(nowAR).toISOString().split("T")[0]
-    const lastDay = racha?.ultimaFecha.toISOString().split("T")[0]
-    const yesterday = new Date(nowAR.getTime() - 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0]
-    if (racha == null) {
-      await prisma.racha.create({
-        data: {
-          usuarioId: userId,
-          rachaActual: 1,
-          ultimaFecha: nowAR,
-          isInactive: false,
-        },
-      })
-    } else if (lastDay == yesterday) {
-      await prisma.racha.update({
-        where: { usuarioId: userId },
-        data: {
-          rachaActual: racha.rachaActual + 1,
-          ultimaFecha: nowAR,
-          isInactive: false,
-        },
-      })
-    } else if (lastDay == today) {
-    } else if (lastDay < yesterday) {
-      await prisma.racha.update({
-        where: { usuarioId: userId },
-        data: {
-          rachaActual: 1,
-          ultimaFecha: nowAR,
-          isInactive: false,
-        },
-      })
-    }
-    res.status(201).json(nuevoIngreso)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
-
-app.get("/ingreso", validateToken, async (req, res) => {
-  try {
-    const { month, year, limit, order = "asc" } = req.query
-
-    const userId = req.user.user_id
-    if (!userId || typeof userId !== "string") {
-      return res.status(400).json({ error: "Missing or invalid userId" })
-    }
-
-    const filters = {
-      where: {
-        usuarioId: userId,
-        ...(month &&
-          year && {
-            fecha: {
-              gte: new Date(Number(year), Number(month) - 1, 1),
-              lt: new Date(Number(year), Number(month), 1),
-            },
-          }),
-      },
-      orderBy: {
-        fecha: order === "desc" ? "desc" : "asc",
-      },
-      ...(limit && { take: parseInt(limit) }),
-    }
-
-    const ingresos = await prisma.ingreso.findMany(filters)
-    res.json(ingresos)
-  } catch (error) {
-    console.error("Error fetching ingresos:", error)
-    res.status(500).json({ error: "Internal server error" })
-  }
-})
-
-app.get("/ingreso/agrupado", validateToken, async (req, res) => {
-  try {
-    const userId = req.user.user_id
-
-    if (!userId || typeof userId !== "string") {
-      return res.status(400).json({ error: "Missing or invalid userId"})
-    }
-
-    const groupedIncomes = await prisma.$queryRaw`
-      SELECT 
-        TO_CHAR("fecha", 'YYYY-MM') AS month,
-        json_agg(
-          json_build_object(
-            'id', "id",
-            'usuarioId', "usuarioId",
-            'ingreso', "ingreso",
-            'montoAnterior', "montoAnterior",
-            'fecha', "fecha"
-          )
-          ORDER BY "fecha" DESC
-        ) AS items
-      FROM "Ingreso"
-      WHERE "usuarioId" = ${userId}
-      GROUP BY month
-      ORDER BY month DESC;
-    `
-
-    res.json(groupedIncomes)
-  } catch (error) {
-    console.error("Error grouping ingresos:", error)
-    res.status(500).json({ error: "Internal server error" })
-  }
-})
-
-app.get("/ingresoPorId/:id", validateToken, async (req, res) => {
-  const id = parseInt(req.params.id)
-  if (isNaN(id)) {
-    return res.status(400).json({ error: "ID inválido" })
-  }
-
-  try {
-    const income = await prisma.ingreso.findUnique({
-      where: { id },
-    })
-    if (!income) return res.status(404).json({ error: "Ingreso no encontrado" })
-    res.status(200).json(income)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
-
+/* 
 app.get("/ingreso/:userId", validateToken, async (req, res) => {
   const { userId } = req.params
   try {
@@ -237,6 +57,7 @@ app.get("/ingreso/:userId", validateToken, async (req, res) => {
     res.status(400).json({ error: error.message })
   }
 })
+*/
 
 app.get("/balance/agrupado", validateToken, async (req, res) => {
   try {
@@ -395,160 +216,10 @@ app.get("/balance/:userId", validateToken, async (req, res) => {
   }
 })
 
-app.post("/customCategory", validateToken, async (req, res) => {
-  const { nombre, icono, color, descripcion } = req.body
+app.get("/budgets", validateToken, async (req, res) => {
+  console.log("Obteniendo presupuestos para usuario:", req.user.user_id)
   try {
-    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
-    const nuevaCategoria = await prisma.categorias.create({
-      data: {
-        usuarioId: uid,
-        nombre,
-        icono,
-        color,
-        descripcion,
-      },
-    })
-    res.status(201).json(nuevaCategoria)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
-
-app.get("/categories", validateToken, async (req, res) => {
-  const { month, year } = req.query
-  try {
-    const uid =
-      req.user?.sub || req.user?.user_id || req.user?.uid || req.query.userId
-
-    const categorias = await prisma.categorias.findMany({
-      where: { OR: [{ usuarioId: "0" }, { usuarioId: uid }] },
-    })
-    let sumGastos = new Map()
-    if (uid) {
-      // Construir filtro de fechas opcional si se provee month and/or year
-      const dateFilter = {}
-      const m = month ? parseInt(month, 10) : undefined
-      const y = year ? parseInt(year, 10) : undefined
-
-      if ((!isNaN(m) && m >= 1 && m <= 12) || !isNaN(y)) {
-        // Si se da month sin year, asumimos el año actual
-        const now = new Date()
-        const yy = !isNaN(y) ? y : now.getFullYear()
-
-        if (!isNaN(m) && m >= 1 && m <= 12) {
-          // Filtrar por mes específico
-          const start = new Date(yy, m - 1, 1)
-          const end = new Date(yy, m, 1) // primer día del siguiente mes
-          dateFilter.fecha = { gte: start, lt: end }
-        } else {
-          // Solo año: filtrar todo el año
-          const start = new Date(yy, 0, 1)
-          const end = new Date(yy + 1, 0, 1)
-          dateFilter.fecha = { gte: start, lt: end }
-        }
-      }
-      const sums = await prisma.gasto.groupBy({
-        by: ["categoriaId"],
-        where: Object.assign({ usuarioId: uid }, dateFilter),
-        _sum: {
-          gasto: true,
-        },
-      })
-
-      for (const s of sums) {
-        sumGastos.set(s.categoriaId, s._sum?.gasto ?? 0)
-      }
-    }
-    const categoriasConGastos = categorias.map((c) => ({
-      id: c.id,
-      nombre: c.nombre,
-      icono: c.icono,
-      color: c.color,
-      descripcion: c.descripcion,
-      totalGastos: sumGastos.get(c.id) || 0,
-      editable: c.editable,
-    }))
-    res.json(categoriasConGastos)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
-
-app.delete("/deleteCategory/:id", validateToken, async (req, res) => {
-  const { id } = req.params
-  try {
-    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
-
-    const category = await prisma.categorias.findUnique({
-      where: { id: Number(id) },
-    })
-
-    if (!category) {
-      return res.status(404).json({ message: "Categoría no encontrada" })
-    }
-
-    if (category.usuarioId !== uid) {
-      return res
-        .status(403)
-        .json({ message: "No tenés permiso para eliminar esta categoría" })
-    }
-
-    const deletedCategory = await prisma.categorias.delete({
-      where: { id: Number(id) },
-    })
-
-    res.status(200).json({
-      message: "Categoría eliminada correctamente",
-      deletedCategory,
-    })
-  } catch (error) {
-    console.error("Error eliminando categoría:", error)
-    res
-      .status(500)
-      .json({ message: "Error eliminando categoría", error: error.message })
-  }
-})
-
-app.put("/modifyCategory/:id", validateToken, async (req, res) => {
-  const { id } = req.params
-  const { categoria, descripcion, icono, color } = req.body
-
-  try {
-    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
-    const categoriaExistente = await prisma.categorias.findUnique({
-      where: { id: parseInt(id) },
-    })
-    if (!categoriaExistente) {
-      return res.status(404).json({ error: "Categoría no encontrada" })
-    }
-    if (categoriaExistente.usuarioId !== uid) {
-      return res
-        .status(403)
-        .json({ error: "No tenés permiso para modificar esta categoría" })
-    }
-    const categoriaActualizada = await prisma.categorias.update({
-      where: { id: parseInt(id) },
-      data: {
-        nombre: categoria || categoriaExistente.nombre,
-        descripcion: descripcion || categoriaExistente.descripcion,
-        icono: icono || categoriaExistente.icono,
-        color: color || categoriaExistente.color,
-      },
-    })
-
-    res.json({
-      message: "Categoría modificada correctamente",
-      categoria: categoriaActualizada,
-    })
-  } catch (error) {
-    console.error("Error modificando categoría:", error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
-app.get("/budgets", async (req, res) => {
-  try {
-    const { usuarioId } = req.query
+    const  usuarioId  = req.user.user_id
     if (!usuarioId) {
       return res.status(400).json({ error: "Falta el usuarioId" })
     }

@@ -187,4 +187,51 @@ router.delete("/:id", validateToken, async (req, res) => {
   }
 })
 
+router.put("/moveExpensesOfCategory", validateToken, async (req, res) => {
+  const { categoriaOrigenId, categoriaDestinoId } = req.body
+  try {
+    const uid = req.user.user_id 
+    if (!categoriaOrigenId || !categoriaDestinoId) {
+      return res
+        .status(400)
+        .json({ error: "Debes indicar las categorías origen y destino." })
+    }
+    const [origen, destino] = await Promise.all([
+      prisma.categorias.findFirst({
+        where: { id: parseInt(categoriaOrigenId), usuarioId: uid },
+      }),
+      prisma.categorias.findFirst({
+        where: { id: parseInt(categoriaDestinoId) },
+      }),
+    ])
+    if (!origen) {
+      return res
+        .status(404)
+        .json({ error: "La categoría de origen no existe o no te pertenece." })
+    }
+    if (!destino) {
+      return res
+        .status(404)
+        .json({ error: "La categoría de destino no existe o no te pertenece." })
+    }
+    const resultado = await prisma.gasto.updateMany({
+      where: {
+        usuarioId: uid,
+        categoriaId: parseInt(categoriaOrigenId),
+      },
+      data: {
+        categoriaId: parseInt(categoriaDestinoId),
+      },
+    })
+
+    res.status(200).json({
+      message: `Se movieron ${resultado.count} gastos de la categoría ${origen.nombre} a ${destino.nombre}.`,
+      cantidad: resultado.count,
+    })
+  } catch (error) {
+    console.error("Error moviendo gastos de categoría:", error)
+    res.status(500).json({ error: "" })
+  }
+})
+
 module.exports = router
