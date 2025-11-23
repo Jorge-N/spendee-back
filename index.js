@@ -143,8 +143,9 @@ app.post("/ingreso", validateToken, async (req, res) => {
 
 app.get("/ingreso", validateToken, async (req, res) => {
   try {
-    const { userId, month, year, limit, order = "asc" } = req.query
+    const { month, year, limit, order = "asc" } = req.query
 
+    const userId = req.user.user_id
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })
     }
@@ -176,10 +177,10 @@ app.get("/ingreso", validateToken, async (req, res) => {
 
 app.get("/ingreso/agrupado", validateToken, async (req, res) => {
   try {
-    const { userId } = req.query
+    const userId = req.user.user_id
 
     if (!userId || typeof userId !== "string") {
-      return res.status(400).json({ error: "Missing or invalid userId" })
+      return res.status(400).json({ error: "Missing or invalid userId"})
     }
 
     const groupedIncomes = await prisma.$queryRaw`
@@ -240,12 +241,13 @@ app.get("/ingreso/:userId", validateToken, async (req, res) => {
 app.get("/balance/agrupado", validateToken, async (req, res) => {
   try {
     const {
-      userId,
       startDate,
       endDate,
       groupBy = "month",
       order = "asc",
     } = req.query
+
+    const userId  = req.user.user_id
 
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })

@@ -64,7 +64,8 @@ router.post("/", validateToken, async (req, res) => {
 
 router.get("/", validateToken, async (req, res) => {
   try {
-    const { userId, month, year, categoryId, limit, order = "asc" } = req.query
+    const { month, year, categoryId, limit, order = "asc" } = req.query
+    const  userId  = req.user.user_id
 
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })
@@ -98,7 +99,7 @@ router.get("/", validateToken, async (req, res) => {
 
 router.get("/grouped", validateToken, async (req, res) => {
   try {
-    const { userId } = req.query
+    const userId = req.user.user_id
 
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })
