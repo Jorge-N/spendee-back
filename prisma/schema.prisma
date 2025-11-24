@@ -70,36 +70,25 @@ model Racha {
   isInactive  Boolean  @default(true)
 }
 
-model Niveles {
-  id            Int            @id @default(autoincrement())
-  objetivos     Objetivos[]
-  nivelUsuarios NivelUsuario[]
+model Piggy {
+  id        String            @id @default(uuid())
+  usuarioId String            @unique
+  nombre    String
+  xp        Int               @default(0)
+  objetivos ObjetivoUsuario[]
 }
 
-model Objetivos {
-  id                Int                @id @default(autoincrement())
-  descripcion       String
-  condicion         String
-  nivelId           Int
-  niveles           Niveles            @relation(fields: [nivelId], references: [id])
-  objetivosUsuarios ObjetivosUsuario[]
+model Objetivo {
+  id          Int    @id @default(autoincrement())
+  descripcion String
+  accion      String
+  maxProgreso Int
 }
 
-model NivelUsuario {
-  id                Int                @id @default(autoincrement())
-  usuarioId         String             @unique
-  nivelId           Int
-  niveles           Niveles            @relation(fields: [nivelId], references: [id])
-  objetivosUsuarios ObjetivosUsuario[]
-}
-
-model ObjetivosUsuario {
-  id           Int          @id @default(autoincrement())
-  usuarioNivel Int
-  objetivoId   Int
-  isCompleted  Boolean      @default(false)
-  nivelUsuario NivelUsuario @relation(fields: [usuarioNivel], references: [id])
-  objetivo     Objetivos    @relation(fields: [objetivoId], references: [id])
-
-  @@unique([usuarioNivel, objetivoId])
+model ObjetivoUsuario {
+  id         Int     @id @default(autoincrement())
+  objetivoId Int
+  progreso   Int     @default(0)
+  piggy      Piggy?  @relation(fields: [piggyId], references: [id])
+  piggyId    String?
 }
