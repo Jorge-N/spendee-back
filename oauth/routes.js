@@ -4,8 +4,8 @@ const { PrismaClient } = require("@prisma/client")
 const prisma = new PrismaClient()
 const jwt = require("jsonwebtoken")
 
-const { generateCode, hashCode } = require("../utils/oauth")
-const { generateRefreshToken, hashRefreshToken } = require("../utils/refresh")
+const { generateCode, hashCode } = require("../helpers/code")
+const { generateRefreshToken, hashRefreshToken } = require("../helpers/refresh")
 
 const JWT_SECRET = process.env.JWT_SECRET
 
