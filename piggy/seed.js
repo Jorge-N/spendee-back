@@ -2,113 +2,61 @@ const { PrismaClient } = require("@prisma/client")
 const prisma = new PrismaClient()
 
 async function main() {
-  await prisma.objetivos?.deleteMany()
-  await prisma.niveles?.deleteMany()
-
-  const niveles = [
+  await prisma.objetivo?.deleteMany()
+  const objetivos = [
+    { descripcion: "Añadir 3 gastos", accion: "expense", maxProgreso: 3 },
+    { descripcion: "Añadir 5 ingresos", accion: "income", maxProgreso: 5 },
     {
-      id: 1,
-      objetivos: [
-        { descripcion: "Hacer 3 ingresos", condicion: "ingresos>=3" },
-        { descripcion: "Hacer 5 egresos", condicion: "egresos>=5" },
-        {
-          descripcion: "Crear un presupuesto",
-          condicion: "presupuesto_creado>=1",
-        },
-      ],
+      descripcion: "Crear 1 categoría nueva",
+      accion: "category",
+      maxProgreso: 1,
+    },
+    { descripcion: "Crear 1 presupuesto", accion: "budget", maxProgreso: 1 },
+    { descripcion: "Añadir 10 gastos", accion: "expense", maxProgreso: 10 },
+    { descripcion: "Añadir 10 ingresos", accion: "income", maxProgreso: 10 },
+    {
+      descripcion: "Actualizar un presupuesto existente",
+      accion: "budget_update",
+      maxProgreso: 1,
     },
     {
-      id: 2,
-      objetivos: [
-        {
-          descripcion: "Cargar gastos durante 5 días seguidos",
-          condicion: "gastos_consecutivos>=5",
-        },
-        {
-          descripcion: "Mantener el balance positivo durante 3 días seguidos",
-          condicion: "balance_positivo>=3",
-        },
-        {
-          descripcion: "Crear una categoría personalizada",
-          condicion: "categoria_personalizada>=1",
-        },
-      ],
+      descripcion: "Agregar 3 categorías personalizadas",
+      accion: "category",
+      maxProgreso: 3,
     },
     {
-      id: 3,
-      objetivos: [
-        {
-          descripcion: "Registrar 20 movimientos en total",
-          condicion: "movimientos>=20",
-        },
-        {
-          descripcion: "Cerrar el presupuesto entre 80% y 100%",
-          condicion: "presupuesto_80_100>=1",
-        },
-        {
-          descripcion: "Crear un presupuesto para el futuro",
-          condicion: "presupuesto_futuro>=1",
-        },
-      ],
+      descripcion: "Registrar 20 movimientos",
+      accion: "movement",
+      maxProgreso: 20,
     },
     {
-      id: 4,
-      objetivos: [
-        {
-          descripcion: "Mantener el balance positivo durante 7 días seguidos",
-          condicion: "balance_positivo>=7",
-        },
-        {
-          descripcion: "Registrar 50 movimientos en total",
-          condicion: "movimientos>=50",
-        },
-        {
-          descripcion: "Cargar gastos durante 10 días seguidos",
-          condicion: "gastos_consecutivos>=10",
-        },
-      ],
+      descripcion: "Registrar 50 movimientos",
+      accion: "movement",
+      maxProgreso: 50,
     },
     {
-      id: 5,
-      objetivos: [
-        {
-          descripcion: "Registrar 100 movimientos en total",
-          condicion: "movimientos>=100",
-        },
-        {
-          descripcion: "Mantener el balance positivo durante 15 días seguidos",
-          condicion: "balance_positivo>=15",
-        },
-        {
-          descripcion: "Cerrar el presupuesto entre 80% y 100%",
-          condicion: "presupuesto_80_100>=1",
-        },
-      ],
+      descripcion: "Completar 5 objetivos",
+      accion: "complete_objectives",
+      maxProgreso: 5,
+    },
+    {
+      descripcion: "Eliminar 5 gastos",
+      accion: "delete_expense",
+      maxProgreso: 5,
+    },
+    { descripcion: "Crear 2 presupuestos", accion: "budget", maxProgreso: 2 },
+    {
+      descripcion: "Editar 1 categoría existente",
+      accion: "category_edit",
+      maxProgreso: 3,
     },
   ]
 
-  for (const nivel of niveles) {
-    await prisma.niveles?.create({
-      data: {
-        id: nivel.id,
-        objetivos: {
-          create: nivel.objetivos.map((o) => ({
-            descripcion: o.descripcion,
-            condicion: o.condicion,
-          })),
-        },
-      },
-    })
+  for (const obj of objetivos) {
+    await prisma.objetivo.create({ data: obj })
   }
 
-  console.log("Seed ejecutada correctamente ✔")
+  console.log("Seed cargado.")
 }
 
 main()
-  .catch((e) => {
-    console.error(e)
-    process.exit(1)
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })

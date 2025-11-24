@@ -79,17 +79,19 @@ model Piggy {
 }
 
 model Objetivo {
-  id          Int    @id @default(autoincrement())
-  descripcion String
-  accion      String
-  maxProgreso Int
+  id               Int               @id @default(autoincrement())
+  descripcion      String
+  accion           String
+  maxProgreso      Int
+  objetivoUsuarios ObjetivoUsuario[]
 }
 
 model ObjetivoUsuario {
-  id         Int     @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   objetivoId Int
-  progreso   Int     @default(0)
-  piggy      Piggy?  @relation(fields: [piggyId], references: [id])
+  objetivo   Objetivo @relation(fields: [objetivoId], references: [id])
+  progreso   Int      @default(0)
+  piggy      Piggy?   @relation(fields: [piggyId], references: [id])
   piggyId    String?
 }
 
