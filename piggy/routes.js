@@ -31,6 +31,20 @@ router.get("/", validateToken, async (req, res) => {
   }
 })
 
+router.put("/updatePiggy", validateToken, async (req, res) => {
+  const userId = req.user?.sub || req.user?.user_id || req.user?.uid
+  const { nombre } = req.body
+  try {
+    const updatedPiggy = await prisma.piggy.updateMany({
+      where: { usuarioId: userId },
+      data: { nombre },
+    })
+    res.status(200).json(updatedPiggy)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
 router.get("/checkObjective", validateToken, async (req, res) => {
   const userId = req.user?.sub || req.user?.user_id || req.user?.uid
   const { action } = req.query
