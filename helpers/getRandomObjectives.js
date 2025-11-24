@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client"
+const { PrismaClient } = require("@prisma/client")
 const prisma = new PrismaClient()
 
-export async function getRandomObjectives(count) {
+async function getRandomObjectives(count) {
   const allObjectives = await prisma.objetivo.findMany()
 
   if (allObjectives.length < count) {
@@ -14,3 +14,4 @@ export async function getRandomObjectives(count) {
 
   return random
 }
+module.exports = getRandomObjectives

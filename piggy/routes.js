@@ -1,12 +1,13 @@
 const express = require("express")
 const router = express.Router()
 const { PrismaClient } = require("@prisma/client")
-const { getRandomObjectives } = require("../helpers/getRandomObjectives")
+const getRandomObjectives = require("../helpers/getRandomObjectives")
+const validateToken = require("../middleware/validateToken")
 
 const prisma = new PrismaClient()
 
-router.get("/", async (req, res) => {
-  const userId = req.user?.uid
+router.get("/", validateToken, async (req, res) => {
+  const userId = req.user?.sub || req.user?.user_id || req.user?.uid
   const randomObjectives = await getRandomObjectives(3)
   try {
     const piggy = await prisma.piggy.upsert({
