@@ -6,6 +6,7 @@ async function main() {
   const objetivos = [
     { descripcion: "Añadir 3 gastos", accion: "expense", maxProgreso: 3 },
     { descripcion: "Añadir 5 ingresos", accion: "income", maxProgreso: 5 },
+    { descripcion: "Crear 3 presupuestos", accion: "budget", maxProgreso: 3 },
     {
       descripcion: "Crear 1 categoría nueva",
       accion: "category",
@@ -25,19 +26,20 @@ async function main() {
       maxProgreso: 3,
     },
     {
-      descripcion: "Registrar 20 movimientos",
-      accion: "movement",
-      maxProgreso: 20,
+      descripcion: "Agregar 1 categoría personalizada",
+      accion: "category",
+      maxProgreso: 1,
+    },
+    { descripcion: "Editar 1 gasto", accion: "expense_edit", maxProgreso: 1 },
+    {
+      descripcion: "Editar el nombre del Piggy",
+      accion: "piggy_edit",
+      maxProgreso: 1,
     },
     {
-      descripcion: "Registrar 50 movimientos",
-      accion: "movement",
-      maxProgreso: 50,
-    },
-    {
-      descripcion: "Completar 5 objetivos",
-      accion: "complete_objectives",
-      maxProgreso: 5,
+      descripcion: "Editar tu nombre en el perfil",
+      accion: "profile_edit",
+      maxProgreso: 1,
     },
     {
       descripcion: "Eliminar 5 gastos",
