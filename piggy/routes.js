@@ -31,4 +31,85 @@ router.get("/", validateToken, async (req, res) => {
   }
 })
 
+router.get("/checkObjective", validateToken, async (req, res) => {
+  const userId = req.user?.sub || req.user?.user_id || req.user?.uid
+  const { action } = req.query
+
+  if (!action) {
+    return res.status(400).json({ error: "Action is required" })
+  }
+
+  try {
+    const piggy = await prisma.piggy.findUnique({
+      where: { usuarioId: userId },
+      include: {
+        objetivos: {
+          include: { objetivo: true },
+        },
+      },
+    })
+
+    if (!piggy) {
+      return res.status(404).json({ error: "Piggy not found" })
+    }
+
+    const objetivosAActualizar = piggy.objetivos.filter(
+      (obj) => obj.objetivo.accion === action,
+    )
+
+    if (objetivosAActualizar.length === 0) {
+      return res.status(200).json({ updated: false })
+    }
+
+    const updates = []
+
+    for (const obj of objetivosAActualizar) {
+      const nuevoProgreso = obj.progreso + 1
+      const completado = nuevoProgreso >= obj.objetivo.maxProgreso
+
+      updates.push(
+        prisma.objetivoUsuario.update({
+          where: { id: obj.id },
+          data: {
+            progreso: nuevoProgreso,
+          },
+        }),
+      )
+
+      if (completado) {
+        updates.push(
+          prisma.piggy.update({
+            where: { id: piggy.id },
+            data: {
+              xp: piggy.xp + 1,
+            },
+          }),
+        )
+
+        updates.push(
+          prisma.objetivoUsuario.delete({
+            where: { id: obj.id },
+          }),
+        )
+
+        const [nuevoObjetivo] = await getRandomObjectives(1)
+        updates.push(
+          prisma.objetivoUsuario.create({
+            data: {
+              piggyId: piggy.id,
+              objetivoId: nuevoObjetivo.id,
+            },
+          }),
+        )
+      }
+    }
+
+    await prisma.$transaction(updates)
+
+    return res.status(200).json({ updated: true })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: error.message })
+  }
+})
 module.exports = router
