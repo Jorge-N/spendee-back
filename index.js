@@ -1117,5 +1117,5 @@ app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
 })
 
-//module.exports = serverless(app)
-module.exports = app
+module.exports = serverless(app)
+//module.exports = app
