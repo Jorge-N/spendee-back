@@ -329,7 +329,7 @@ router.post("/gasto", validateOAuthToken, async (req, res) => {
   }
 })
 
-router.get("/gastos", validateToken, async (req, res) => {
+router.get("/gastos", validateOAuthToken, async (req, res) => {
   console.log(req.user)
   try {
     const { month, year, categoryName, limit = 100, order = "asc" } = req.query
@@ -375,7 +375,7 @@ router.get("/gastos", validateToken, async (req, res) => {
 })
 
 // Ingresos
-router.post("/ingreso", validateToken, async (req, res) => {
+router.post("/ingreso", validateOAuthToken, async (req, res) => {
   const { ingreso } = req.body
   const userId = req.user.uid
   try {
@@ -406,7 +406,7 @@ router.post("/ingreso", validateToken, async (req, res) => {
   }
 })
 
-router.get("/ingresos", validateToken, async (req, res) => {
+router.get("/ingresos", validateOAuthToken, async (req, res) => {
   try {
     const { month, year, limit = 100, order = "asc" } = req.query
     const userId = req.user.uid
@@ -433,7 +433,7 @@ router.get("/ingresos", validateToken, async (req, res) => {
 })
 
 // Get balance aggregated by month (simple version)
-router.get("/balance", validateToken, async (req, res) => {
+router.get("/balance", validateOAuthToken, async (req, res) => {
   try {
     const { startDate, endDate, order = "asc" } = req.query
     const userId = req.user.uid
@@ -493,7 +493,7 @@ router.get("/balance", validateToken, async (req, res) => {
 })
 
 // Categories
-router.get("/categories", validateToken, async (req, res) => {
+router.get("/categories", validateOAuthToken, async (req, res) => {
   try {
     const uid = req.user.uid
     const categorias = await prisma.categorias.findMany({
