@@ -16,6 +16,9 @@ app.use("/api", apiRouter)
 const authRouter = require("./auth")
 app.use("/auth", authRouter)
 
+const oauthRouter = require("./routes/oauth")
+app.use("/oauth", oauthRouter)
+
 const cron = require("./cron")
 app.use("/cron", cron)
 

@@ -92,3 +92,21 @@ model ObjetivoUsuario {
   piggy      Piggy?  @relation(fields: [piggyId], references: [id])
   piggyId    String?
 }
+
+model OAuthCode {
+  id        String   @id @default(cuid())
+  codeHash  String
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String
+  userId    String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
