@@ -330,10 +330,9 @@ router.post("/gasto", validateOAuthToken, async (req, res) => {
 })
 
 router.get("/gastos", validateOAuthToken, async (req, res) => {
-  console.log(req.user)
   try {
     const { month, year, categoryName, limit = 100, order = "asc" } = req.query
-    const userId = req.user.uid
+    const userId = req.user.payload.sub
 
     //busqueda categoria
     let categoria = await prisma.categorias.findFirst({
@@ -377,7 +376,7 @@ router.get("/gastos", validateOAuthToken, async (req, res) => {
 // Ingresos
 router.post("/ingreso", validateOAuthToken, async (req, res) => {
   const { ingreso } = req.body
-  const userId = req.user.uid
+  const userId = req.user.payload.sub
   try {
     const gastoSum = await prisma.gasto.aggregate({
       where: { usuarioId: userId },
@@ -409,7 +408,7 @@ router.post("/ingreso", validateOAuthToken, async (req, res) => {
 router.get("/ingresos", validateOAuthToken, async (req, res) => {
   try {
     const { month, year, limit = 100, order = "asc" } = req.query
-    const userId = req.user.uid
+    const userId = req.user.payload.sub
     const filters = {
       where: {
         usuarioId: userId,
@@ -436,7 +435,7 @@ router.get("/ingresos", validateOAuthToken, async (req, res) => {
 router.get("/balance", validateOAuthToken, async (req, res) => {
   try {
     const { startDate, endDate, order = "asc" } = req.query
-    const userId = req.user.uid
+    const userId = req.user.payload.sub
 
     const start = startDate ? new Date(startDate) : new Date("1970-01-01")
     const end = endDate ? new Date(endDate) : new Date()
@@ -493,9 +492,9 @@ router.get("/balance", validateOAuthToken, async (req, res) => {
 })
 
 // Categories
-router.get("/categories", validateOAuthToken, async (req, res) => {
+router.get("/categories", validateToken, async (req, res) => {
   try {
-    const uid = req.user.uid
+    const uid = req.user.payload.sub
     const categorias = await prisma.categorias.findMany({
       where: { OR: [{ usuarioId: "0" }, { usuarioId: uid }] },
     })
