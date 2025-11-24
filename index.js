@@ -16,7 +16,7 @@ app.use("/api", apiRouter)
 const authRouter = require("./auth")
 app.use("/auth", authRouter)
 
-const oauthRouter = require("./routes/oauth")
+const oauthRouter = require("./oauth/routes")
 app.use("/oauth", oauthRouter)
 
 const cron = require("./cron")
@@ -1117,5 +1117,5 @@ app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`)
 })
 
-//module.exports = serverless(app)
-module.exports = app
+module.exports = serverless(app)
+//module.exports = app
