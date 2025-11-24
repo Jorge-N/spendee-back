@@ -2,6 +2,7 @@ const express = require("express")
 const router = express.Router()
 const { PrismaClient } = require("@prisma/client")
 const truncateToDate = require("./helpers/truncateToDate")
+const validateOAuthToken = require("./middleware/validateOAuthToken")
 const validateToken = require("./middleware/validateToken")
 
 const prisma = new PrismaClient()
@@ -35,12 +36,10 @@ router.post("/login", async (req, res) => {
 
     const data = await resp.json()
     if (!resp.ok)
-      return res
-        .status(401)
-        .json({
-          error: data.error?.message || "Authentication failed",
-          details: data,
-        })
+      return res.status(401).json({
+        error: data.error?.message || "Authentication failed",
+        details: data,
+      })
 
     const { idToken, refreshToken, expiresIn, localId: uid, displayName } = data
 
@@ -267,9 +266,9 @@ router.get("/oauth/google/callback", async (req, res) => {
 })
 
 // Create gasto
-router.post("/gasto", validateToken, async (req, res) => {
+router.post("/gasto", validateOAuthToken, async (req, res) => {
   const { gasto, categoryName } = req.body
-  const userId = req.user.uid
+  const userId = req.user.payload.sub
 
   if (gasto == null || isNaN(Number(gasto))) {
     return res.status(400).json({ error: "Missing or invalid gasto amount" })
