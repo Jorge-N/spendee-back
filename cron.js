@@ -15,9 +15,6 @@ function verifyCronToken(req, res, next) {
 }
 
 router.get("/", (req, res) => {
-  const now = new Date()
-
-  console.log("new date", new Date(now.getTime() * 60 * 60 * 1000))
   res.json({ message: "Cron endpoint is working" })
 })
 
