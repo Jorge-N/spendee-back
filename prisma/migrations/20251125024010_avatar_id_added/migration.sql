@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Piggy" ADD COLUMN     "avatarId" INTEGER NOT NULL DEFAULT 1;

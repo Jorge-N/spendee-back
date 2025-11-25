@@ -75,6 +75,7 @@ model Piggy {
   usuarioId String            @unique
   nombre    String            @default("Piggy")
   xp        Int               @default(0)
+  avatarId  Int               @default(1)
   objetivos ObjetivoUsuario[]
 }
 
