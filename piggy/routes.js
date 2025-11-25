@@ -127,7 +127,7 @@ router.get("/checkObjective", validateToken, async (req, res) => {
   }
 })
 
-router.put("updateAvatar", validateToken, async (req, res) => {
+router.put("/updateAvatar", validateToken, async (req, res) => {
   const userId = req.user?.sub || req.user?.user_id || req.user?.uid
   const { avatarId } = req.body
   try {
