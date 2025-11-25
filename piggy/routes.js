@@ -126,4 +126,19 @@ router.get("/checkObjective", validateToken, async (req, res) => {
     res.status(500).json({ error: error.message })
   }
 })
+
+router.put("updateAvatar", validateToken, async (req, res) => {
+  const userId = req.user?.sub || req.user?.user_id || req.user?.uid
+  const { avatarId } = req.body
+  try {
+    const updatedPiggy = await prisma.piggy.update({
+      where: { usuarioId: userId },
+      data: { avatarId },
+    })
+    res.status(200).json(updatedPiggy)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
 module.exports = router
