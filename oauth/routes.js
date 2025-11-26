@@ -12,7 +12,7 @@ const JWT_SECRET = process.env.JWT_SECRET
 
 router.post("/code", validateToken, async (req, res) => {
   try {
-    const { userId } = req.body
+    const userId = req.user.user_id
     if (!userId) {
       return res.status(400).json({ error: "Missing userId" })
     }
