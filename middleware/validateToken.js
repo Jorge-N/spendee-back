@@ -4,6 +4,11 @@ const jwksClient = require("jwks-rsa")
 const client = jwksClient({
   jwksUri:
     "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com",
+  cache: true,
+  cacheMaxEntries: 5,
+  cacheMaxAge: 10 * 60 * 1000,
+  rateLimit: true,
+  jwksRequestsPerMinute: 10,
 })
 
 function getKey(header, callback) {
@@ -19,10 +24,15 @@ async function validateToken(req, res, next) {
     const authHeader = req.headers["authorization"]
     const token = authHeader && authHeader.split(" ")[1]
     if (!token) return res.status(401).json({ error: "Token no proporcionado" })
-    try {
-      const decoded = jwt.decode(token, { complete: true })
-    } catch (e) {}
 
+    const decoded = jwt.decode(token, { complete: true })
+    const header = decoded && decoded.header
+    if (!header || !header.kid) {
+      return res.status(403).json({
+        error: "Token inválido",
+        details: "Falta 'kid' en el header del token",
+      })
+    }
     jwt.verify(
       token,
       getKey,
@@ -31,13 +41,13 @@ async function validateToken(req, res, next) {
         issuer: "https://securetoken.google.com/spendee-7d662",
         audience: "spendee-7d662",
       },
-      (err, decoded) => {
+      (err, verifiedPayload) => {
         if (err) {
           return res
             .status(403)
             .json({ error: "Token inválido", details: err.message })
         }
-        req.user = decoded
+        req.user = verifiedPayload
         next()
       },
     )
