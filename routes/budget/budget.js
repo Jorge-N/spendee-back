@@ -7,9 +7,8 @@ const validateToken = require("../../middleware/validateToken.js")
 const prisma = new PrismaClient()
 
 router.get("/", validateToken, async (req, res) => {
-    console.log("Obteniendo presupuestos para el usuario:", req.user.user_id)
   try {
-    const  usuarioId  = req.user.user_id
+    const usuarioId = req.user.user_id
     if (!usuarioId) {
       return res.status(400).json({ error: "Falta el usuarioId" })
     }
