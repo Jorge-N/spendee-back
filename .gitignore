@@ -8,3 +8,4 @@ coverage/**/*
 
 serviceAccountKey.json
 .vercel
+.DS_Store

@@ -2,7 +2,7 @@
 const express = require("express")
 const router = express.Router()
 const { PrismaClient } = require("@prisma/client")
-const truncateToDate = require("./helpers/truncateToDate.js")
+const truncateToDate = require("../helpers/truncateToDate.js")
 
 const prisma = new PrismaClient()
 
