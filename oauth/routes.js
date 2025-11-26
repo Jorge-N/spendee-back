@@ -3,16 +3,16 @@ const router = express.Router()
 const { PrismaClient } = require("@prisma/client")
 const prisma = new PrismaClient()
 const jwt = require("jsonwebtoken")
+const validateToken = require("../middleware/validateToken")
 
 const { generateCode, hashCode } = require("../helpers/code")
 const { generateRefreshToken, hashRefreshToken } = require("../helpers/refresh")
 
 const JWT_SECRET = process.env.JWT_SECRET
 
-router.post("/code", async (req, res) => {
+router.post("/code", validateToken, async (req, res) => {
   try {
     const { userId } = req.body
-
     if (!userId) {
       return res.status(400).json({ error: "Missing userId" })
     }
@@ -36,7 +36,7 @@ router.post("/code", async (req, res) => {
   }
 })
 
-router.post("/token", async (req, res) => {
+router.post("/token", validateToken, async (req, res) => {
   try {
     const { code } = req.body
 
@@ -88,7 +88,7 @@ router.post("/token", async (req, res) => {
   }
 })
 
-router.post("/refresh", async (req, res) => {
+router.post("/refresh", validateToken, async (req, res) => {
   try {
     const { refresh_token } = req.body
 
