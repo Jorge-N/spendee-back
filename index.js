@@ -1,6 +1,6 @@
 const serverless = require("serverless-http")
 const express = require("express")
-const validateToken = require("./middleware/validateToken.js")
+const validateToken = require("./middleware/validateToken")
 const { PrismaClient } = require("@prisma/client")
 
 const prisma = new PrismaClient()
