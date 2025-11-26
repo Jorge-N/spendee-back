@@ -21,7 +21,7 @@ app.use("/oauth", oauthRouter)
 const cron = require("./routes/cron.js")
 app.use("/cron", cron)
 
-const piggyRouter = require("./routes/piggy/routes.js.js")
+const piggyRouter = require("./piggy/routes.js")
 app.use("/piggy", piggyRouter)
 
 const expenseRouter = require("./routes/expenses/expense.js")
