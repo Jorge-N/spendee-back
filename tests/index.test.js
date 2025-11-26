@@ -3,56 +3,86 @@ const request = require("supertest")
 jest.mock("@prisma/client", () => {
   const mPrisma = {
     gasto: {
-      findMany: jest.fn(),
-      create: jest.fn(),
-      aggregate: jest.fn(),
-      findUnique: jest.fn(),
-      delete: jest.fn(),
-      groupBy: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+      create: jest.fn().mockResolvedValue({}),
+      aggregate: jest.fn().mockResolvedValue({ _sum: { gasto: 0 } }),
+      findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue(null),
+      delete: jest.fn().mockResolvedValue({}),
+      groupBy: jest.fn().mockResolvedValue([]),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      update: jest.fn().mockResolvedValue({}),
     },
     ingreso: {
-      findMany: jest.fn(),
-      create: jest.fn(),
-      aggregate: jest.fn(),
-      findUnique: jest.fn(),
-      delete: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+      create: jest.fn().mockResolvedValue({}),
+      aggregate: jest.fn().mockResolvedValue({ _sum: { ingreso: 0 } }),
+      findUnique: jest.fn().mockResolvedValue(null),
+      delete: jest.fn().mockResolvedValue({}),
+      update: jest.fn().mockResolvedValue({}),
     },
     categorias: {
-      findMany: jest.fn(),
-      create: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+      create: jest.fn().mockResolvedValue({}),
+      findUnique: jest.fn().mockResolvedValue(null),
+      delete: jest.fn().mockResolvedValue({}),
+      update: jest.fn().mockResolvedValue({}),
     },
+    presupuesto: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({}),
+      update: jest.fn().mockResolvedValue({}),
+      delete: jest.fn().mockResolvedValue({}),
+    },
+    presupuestoCategoria: {
+      deleteMany: jest.fn().mockResolvedValue({}),
+      createMany: jest.fn().mockResolvedValue({}),
+    },
+    racha: {
+      findUnique: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({}),
+      update: jest.fn().mockResolvedValue({}),
+    },
+    usuario: {
+      findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue(null),
+      update: jest.fn().mockResolvedValue({}),
+      create: jest.fn().mockResolvedValue({}),
+    },
+    $queryRaw: jest.fn().mockResolvedValue([]),
   }
-  return { PrismaClient: jest.fn(() => mPrisma) }
+  return { PrismaClient: jest.fn(() => mPrisma), mockedPrisma: mPrisma }
 })
 jest.mock("../middleware/validateToken.js", () => {
   return (req, res, next) => {
-    req.usuario = { usuarioId: "123", name: "Test User" }
+    req.user = { user_id: "123", name: "Test User" }
     next()
   }
 })
 
 const app = require("../index")
-const { PrismaClient } = require("@prisma/client")
+const { PrismaClient, mockedPrisma } = require("@prisma/client")
 
 describe("GET /", () => {
   it("Cuando se ingresa a la ruta basica, debe aparecer un mensaje de bienvenida", async () => {
     const res = await request(app).get("/")
     expect(res.statusCode).toBe(200)
-    expect(res.text).toBe("API de Gestión de Gastos")
+    expect(res.text).toBe("Spendee API is running")
   })
 })
 
 describe("GET /gasto", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
     jest.clearAllMocks()
   })
   it("Cuando no hay gastos, la respuesta debe ser una lista vacía", async () => {
     prisma.gasto.findMany.mockResolvedValue([])
-    const res = await request(app).get("/gasto")
+    const res = await request(app).get("/expense")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual([])
   })
@@ -74,7 +104,7 @@ describe("GET /gasto", () => {
       },
     ]
     prisma.gasto.findMany.mockResolvedValue(gastosMock)
-    const res = await request(app).get("/gasto")
+    const res = await request(app).get("/expense")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual(gastosMock)
   })
@@ -83,14 +113,14 @@ describe("GET /gasto", () => {
 describe("GET /ingreso", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
     jest.clearAllMocks()
   })
   it("Cuando no hay ingresos, la respuesta debe ser una lista vacía", async () => {
     prisma.ingreso.findMany.mockResolvedValue([])
-    const res = await request(app).get("/ingreso")
+    const res = await request(app).get("/income")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual([])
   })
@@ -112,7 +142,7 @@ describe("GET /ingreso", () => {
       },
     ]
     prisma.ingreso.findMany.mockResolvedValue(ingresosMock)
-    const res = await request(app).get("/ingreso")
+    const res = await request(app).get("/income")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual(ingresosMock)
   })
@@ -121,7 +151,7 @@ describe("GET /ingreso", () => {
 describe("GET /balance/userId", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
     jest.clearAllMocks()
@@ -159,11 +189,11 @@ describe("GET /balance/userId", () => {
     expect(res.body.balance).toEqual(100)
   })
   it("Cuando userId no existe en la tabla gasto o ingreso, el balance debe ser 0", async () => {
-    prisma.gasto.findMany.mockResolvedValue([])
-    prisma.ingreso.findMany.mockResolvedValue([])
+    prisma.gasto.aggregate.mockResolvedValue({ _sum: { gasto: 0 } })
+    prisma.ingreso.aggregate.mockResolvedValue({ _sum: { ingreso: 0 } })
     const res = await request(app).get("/balance/0")
     expect(res.statusCode).toBe(200)
-    expect(res.body.balance).toEqual(100)
+    expect(res.body.balance).toEqual(0)
   })
   it("Cuando userId no existe en la tabla gasto o ingreso, el balance debe ser 0", async () => {
     prisma.gasto.aggregate.mockResolvedValue({ _sum: { gasto: 0 } })
@@ -177,7 +207,7 @@ describe("GET /balance/userId", () => {
 describe("POST /ingreso", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
     jest.clearAllMocks()
@@ -191,8 +221,7 @@ describe("POST /ingreso", () => {
       fecha: String(new Date()),
     }
     prisma.ingreso.create.mockResolvedValue(nuevoIngreso)
-    const res = await request(app).post("/ingreso").send({
-      userId: 1,
+    const res = await request(app).post("/income").send({
       ingreso: 150,
       montoAnterior: 100,
     })
@@ -201,8 +230,7 @@ describe("POST /ingreso", () => {
   })
   it("cuando hay un error en prisma, me devuelve un codigo de error 400", async () => {
     prisma.ingreso.create.mockRejectedValue(new Error("DB error"))
-    const res = await request(app).post("/ingreso").send({
-      userId: 1,
+    const res = await request(app).post("/income").send({
       ingreso: 150,
       montoAnterior: 100,
     })
@@ -210,15 +238,14 @@ describe("POST /ingreso", () => {
     expect(res.body).toEqual({ error: "DB error" })
   })
   it("cuando falta un campo obligatorio, me devuelve un codigo de error 400", async () => {
-    const res = await request(app).post("/ingreso").send({
+    const res = await request(app).post("/income").send({
       montoAnterior: 100,
     })
     expect(res.statusCode).toBe(400)
     expect(res.body).toHaveProperty("error")
   })
   it("cuando el ingreso es un string, me devuelve un codigo de error 400", async () => {
-    const res = await request(app).post("/ingreso").send({
-      userId: 1,
+    const res = await request(app).post("/income").send({
       ingreso: "cien",
       montoAnterior: 100,
     })
@@ -226,8 +253,7 @@ describe("POST /ingreso", () => {
     expect(res.body).toHaveProperty("error")
   })
   it("cuando el ingreso es null, me devuelve un codigo de error 400", async () => {
-    const res = await request(app).post("/ingreso").send({
-      userId: 1,
+    const res = await request(app).post("/income").send({
       ingreso: null,
       montoAnterior: 100,
     })
@@ -239,7 +265,7 @@ describe("POST /ingreso", () => {
 describe("POST /gasto", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
     jest.clearAllMocks()
@@ -253,8 +279,7 @@ describe("POST /gasto", () => {
       fecha: String(new Date()),
     }
     prisma.gasto.create.mockResolvedValue(nuevoGasto)
-    const res = await request(app).post("/gasto").send({
-      userId: 1,
+    const res = await request(app).post("/expense").send({
       gasto: 80,
       montoAnterior: 200,
     })
@@ -264,8 +289,7 @@ describe("POST /gasto", () => {
   it("cuando hay un error en prisma, me devuelve un codigo de error 400", async () => {
     prisma.gasto.create.mockRejectedValue(new Error("DB error"))
 
-    const res = await request(app).post("/gasto").send({
-      userId: 1,
+    const res = await request(app).post("/expense").send({
       gasto: 100,
       montoAnterior: 0,
     })
@@ -275,7 +299,7 @@ describe("POST /gasto", () => {
   })
 
   it("cuando falta un campo obligatorio, me devuelve un codigo de error 400", async () => {
-    const res = await request(app).post("/gasto").send({
+    const res = await request(app).post("/expense").send({
       montoAnterior: 100,
     })
 
@@ -283,8 +307,7 @@ describe("POST /gasto", () => {
     expect(res.body).toHaveProperty("error")
   })
   it("cuando el gasto es un string, me devuelve un codigo de error 400", async () => {
-    const res = await request(app).post("/gasto").send({
-      userId: 1,
+    const res = await request(app).post("/expense").send({
       gasto: "cien",
       montoAnterior: 100,
     })
@@ -292,8 +315,7 @@ describe("POST /gasto", () => {
     expect(res.body).toHaveProperty("error")
   })
   it("cuando el gasto es null, me devuelve un codigo de error 400", async () => {
-    const res = await request(app).post("/gasto").send({
-      userId: 1,
+    const res = await request(app).post("/expense").send({
       gasto: null,
       montoAnterior: 100,
     })
@@ -305,14 +327,14 @@ describe("POST /gasto", () => {
 describe("GET /gasto/:userId", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
     jest.clearAllMocks()
   })
   it("Cuando no hay gastos para el userId, la respuesta debe ser una lista vacía", async () => {
     prisma.gasto.findMany.mockResolvedValue([])
-    const res = await request(app).get("/gasto/1")
+    const res = await request(app).get("/expense")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual([])
   })
@@ -334,7 +356,7 @@ describe("GET /gasto/:userId", () => {
       },
     ]
     prisma.gasto.findMany.mockResolvedValue(gastosMock)
-    const res = await request(app).get("/gasto/1")
+    const res = await request(app).get("/expense")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual(gastosMock)
   })
@@ -343,14 +365,14 @@ describe("GET /gasto/:userId", () => {
 describe("GET /ingreso/:userId", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
     jest.clearAllMocks()
   })
   it("Cuando no hay ingresos para el userId, la respuesta debe ser una lista vacía", async () => {
     prisma.ingreso.findMany.mockResolvedValue([])
-    const res = await request(app).get("/ingreso/1")
+    const res = await request(app).get("/income")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual([])
   })
@@ -372,7 +394,7 @@ describe("GET /ingreso/:userId", () => {
       },
     ]
     prisma.ingreso.findMany.mockResolvedValue(ingresosMock)
-    const res = await request(app).get("/ingreso/1")
+    const res = await request(app).get("/income")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual(ingresosMock)
   })
@@ -381,14 +403,14 @@ describe("GET /ingreso/:userId", () => {
 describe("GET /ingresoPorId/:id", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
-    jest.clearAllMocks()
+    jest.resetAllMocks()
   })
   it("Cuando el ingreso con el id especificado no existe, la respuesta debe ser un error 404", async () => {
     prisma.ingreso.findUnique.mockResolvedValue(null)
-    const res = await request(app).get("/ingresoPorId/999")
+    const res = await request(app).get("/income/byId/999")
     expect(res.statusCode).toBe(404)
     expect(res.body).toEqual({ error: "Ingreso no encontrado" })
   })
@@ -401,12 +423,12 @@ describe("GET /ingresoPorId/:id", () => {
       fecha: String(new Date()),
     }
     prisma.ingreso.findUnique.mockResolvedValue(ingresoMock)
-    const res = await request(app).get("/ingresoPorId/1")
+    const res = await request(app).get("/income/byId/1")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual(ingresoMock)
   })
   it("Cuando el id no es un número, la respuesta debe ser un error 400", async () => {
-    const res = await request(app).get("/ingresoPorId/abc")
+    const res = await request(app).get("/income/byId/abc")
     expect(res.statusCode).toBe(400)
     expect(res.body).toEqual({ error: "ID inválido" })
   })
@@ -415,14 +437,14 @@ describe("GET /ingresoPorId/:id", () => {
 describe("GET /gastoPorId/:id", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
     jest.clearAllMocks()
   })
   it("Cuando el gasto con el id especificado no existe, la respuesta debe ser un error 404", async () => {
-    prisma.gasto.findUnique.mockResolvedValue(null)
-    const res = await request(app).get("/gastoPorId/999")
+    prisma.gasto.findFirst.mockResolvedValue(null)
+    const res = await request(app).get("/expense/byId/999")
     expect(res.statusCode).toBe(404)
     expect(res.body).toEqual({ error: "Gasto no encontrado" })
   })
@@ -434,13 +456,13 @@ describe("GET /gastoPorId/:id", () => {
       montoAnterior: 0,
       fecha: String(new Date()),
     }
-    prisma.gasto.findUnique.mockResolvedValue(gastoMock)
-    const res = await request(app).get("/gastoPorId/1")
+    prisma.gasto.findFirst.mockResolvedValue(gastoMock)
+    const res = await request(app).get("/expense/byId/1")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual(gastoMock)
   })
   it("Cuando el id no es un número, la respuesta debe ser un error 400", async () => {
-    const res = await request(app).get("/gastoPorId/abc")
+    const res = await request(app).get("/expense/byId/abc")
     expect(res.statusCode).toBe(400)
     expect(res.body).toEqual({ error: "ID inválido" })
   })
@@ -449,7 +471,7 @@ describe("GET /gastoPorId/:id", () => {
 describe("DELETE /gasto/:id", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
     jest.clearAllMocks()
@@ -463,12 +485,12 @@ describe("DELETE /gasto/:id", () => {
       fecha: String(new Date()),
     }
     prisma.gasto.findUnique.mockResolvedValue(gastoMock)
-    const res = await request(app).delete("/gasto/1")
+    const res = await request(app).delete("/expense/1")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual({ message: "Gasto eliminado correctamente" })
   })
   it("Cuando el id no es un número, la respuesta debe ser un error 400", async () => {
-    const res = await request(app).delete("/gasto/abc")
+    const res = await request(app).delete("/expense/abc")
     expect(res.statusCode).toBe(400)
     expect(res.body).toEqual({ error: "ID inválido" })
   })
@@ -477,7 +499,7 @@ describe("DELETE /gasto/:id", () => {
 describe("POST /customCategory", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
     jest.clearAllMocks()
@@ -492,7 +514,7 @@ describe("POST /customCategory", () => {
       descripcion: "Una descripción de comida",
     }
     prisma.categorias.create.mockResolvedValue(nuevaCategoria)
-    const res = await request(app).post("/customCategory").send({
+    const res = await request(app).post("/categories/customCategory").send({
       nombre: "Comida",
       icono: "Wine",
       color: "#FFFFFF",
@@ -503,7 +525,7 @@ describe("POST /customCategory", () => {
   })
   it("cuando hay un error en prisma, me devuelve un codigo de error 400", async () => {
     prisma.categorias.create.mockRejectedValue(new Error("DB error"))
-    const res = await request(app).post("/customCategory").send({
+    const res = await request(app).post("/categories/customCategory").send({
       nombre: "Comida",
       icono: "Wine",
       color: "#FFFFFF",
@@ -513,7 +535,7 @@ describe("POST /customCategory", () => {
     expect(res.body).toEqual({ error: "DB error" })
   })
   it("cuando falta un campo obligatorio, me devuelve un codigo de error 400", async () => {
-    const res = await request(app).post("/customCategory").send({
+    const res = await request(app).post("/categories/customCategory").send({
       icono: "Wine",
       color: "#FFFFFF",
       descripcion: "Una descripción de comida",
@@ -526,13 +548,14 @@ describe("POST /customCategory", () => {
 describe("GET /categories", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
     jest.clearAllMocks()
   })
   it("Cuando no hay categorias, la respuesta debe ser una lista vacía", async () => {
     prisma.categorias.findMany.mockResolvedValue([])
+    prisma.gasto.groupBy.mockResolvedValue([])
     const res = await request(app).get("/categories")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual([])
@@ -559,60 +582,60 @@ describe("GET /categories", () => {
       },
     ]
     prisma.categorias.findMany.mockResolvedValue(categoriasMock)
+    prisma.gasto.groupBy.mockResolvedValue([])
     const res = await request(app).get("/categories")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual(resCategoriasMock)
   })
 })
 
-describe("POST /gastosPorCategoria", () => {
+describe("GET /categories (grouping)", () => {
   let prisma
   beforeEach(() => {
-    prisma = new PrismaClient()
+    prisma = mockedPrisma
   })
   afterEach(() => {
     jest.clearAllMocks()
   })
-  it("Cuando no hay gastos para la categoria, la respuesta debe ser una lista vacía", async () => {
+  it("Cuando no hay categorias ni gastos, la respuesta debe ser una lista vacía", async () => {
+    prisma.categorias.findMany.mockResolvedValue([])
     prisma.gasto.groupBy.mockResolvedValue([])
-    const res = await request(app).post("/gastosPorCategoria").send({ id: 5 })
+    const res = await request(app).get("/categories")
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual([])
   })
-  it("Cuando hay gastos para la categoria, la respuesta debe ser una lista con los gastos agrupados por categoria", async () => {
-    const gastosPorCategoriaMock = [
+  it("Cuando hay categorias y gastos, la respuesta debe incluir totalGastos por categoria", async () => {
+    const categoriasMock = [
       {
         id: 1,
-        categoriaId: 1,
-        monto: 100,
-      },
-      {
-        id: 2,
-        categoriaId: 1,
-        monto: 200,
+        nombre: "Comida",
+        usuarioId: 123,
+        icono: "Wine",
+        color: "#FFFFFF",
+        descripcion: "Una descripción de comida",
       },
     ]
-    prisma.gasto.groupBy.mockResolvedValue(gastosPorCategoriaMock)
-    const res = await request(app).post("/gastosPorCategoria").send({ id: 1 })
+    const sumsMock = [
+      {
+        categoriaId: 1,
+        _sum: { gasto: 300 },
+      },
+    ]
+    prisma.categorias.findMany.mockResolvedValue(categoriasMock)
+    prisma.gasto.groupBy.mockResolvedValue(sumsMock)
+
+    const res = await request(app).get("/categories")
     expect(res.statusCode).toBe(200)
-    expect(res.body).toEqual(gastosPorCategoriaMock)
-  })
-  it("Cuando falta el campo id en el body, la respuesta debe ser un error 400", async () => {
-    const res = await request(app).post("/gastosPorCategoria").send({})
-    expect(res.statusCode).toBe(400)
-    expect(res.body).toEqual({ error: "ID de categoría es requerido" })
-  })
-  it("Cuando el id no es un número, la respuesta debe ser un error 400", async () => {
-    const res = await request(app)
-      .post("/gastosPorCategoria")
-      .send({ id: "abc" })
-    expect(res.statusCode).toBe(400)
-    expect(res.body).toEqual({ error: "ID inválido" })
-  })
-  it("Cuando hay un error en prisma, la respuesta debe ser un error 400", async () => {
-    prisma.gasto.groupBy.mockRejectedValue(new Error("DB error"))
-    const res = await request(app).post("/gastosPorCategoria").send({ id: 1 })
-    expect(res.statusCode).toBe(400)
-    expect(res.body).toEqual({ error: "DB error" })
+    expect(res.body).toEqual([
+      {
+        id: 1,
+        nombre: "Comida",
+        icono: "Wine",
+        color: "#FFFFFF",
+        descripcion: "Una descripción de comida",
+        totalGastos: 300,
+        editable: undefined,
+      },
+    ])
   })
 })
