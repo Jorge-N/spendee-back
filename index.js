@@ -1,6 +1,5 @@
 const serverless = require("serverless-http")
 const express = require("express")
-const truncateToDate = require("./helpers/truncateToDate.js")
 const validateToken = require("./middleware/validateToken.js")
 const { PrismaClient } = require("@prisma/client")
 
@@ -51,9 +50,6 @@ app.get("/test-jwt", validateToken, (req, res) => {
   })
 })
 
-
-
-
 /* 
 app.get("/ingreso/:userId", validateToken, async (req, res) => {
   const { userId } = req.params
@@ -67,10 +63,6 @@ app.get("/ingreso/:userId", validateToken, async (req, res) => {
   }
 })
 */
-
-
-
-
 
 //get API ID
 app.get("/getApiId", validateToken, async (req, res) => {
@@ -201,5 +193,5 @@ if (require.main === module) {
   })
 }
 
-//module.exports = serverless(app)
-module.exports = app
+module.exports = serverless(app)
+//module.exports = app
