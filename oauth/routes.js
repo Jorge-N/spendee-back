@@ -38,7 +38,6 @@ router.post("/code", validateToken, async (req, res) => {
 
 router.post("/token", async (req, res) => {
   try {
-    const userId = req.user.user_id
     const { code } = req.body
 
     if (!code) {
@@ -61,12 +60,12 @@ router.post("/token", async (req, res) => {
       where: { id: record.id },
       data: { used: true },
     })
-    const accessToken = jwt.sign({ user_id: userId }, privateKey, {
+    const accessToken = jwt.sign({ user_id: record.userId }, privateKey, {
       algorithm: "RS256",
       issuer: "spendee-back",
       audience: "spendee-api",
       keyid: "hola valen",
-      subject: userId,
+      subject: record.userId,
       expiresIn: "1h",
     })
 
@@ -76,7 +75,7 @@ router.post("/token", async (req, res) => {
     await prisma.refreshToken.create({
       data: {
         tokenHash: refreshHash,
-        userId: userId,
+        userId: record.userId,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
       },
     })
