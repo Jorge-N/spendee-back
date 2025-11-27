@@ -36,7 +36,7 @@ router.post("/code", validateToken, async (req, res) => {
   }
 })
 
-router.post("/token", validateToken, async (req, res) => {
+router.post("/token", async (req, res) => {
   try {
     const userId = req.user.user_id
     const { code } = req.body
