@@ -172,8 +172,14 @@ app.get("/racha/:userId", validateToken, async (req, res) => {
       where: { usuarioId: userId },
     })
     if (!racha) {
-      console.log("Racha no encontrada para el usuario:", userId)
-      return res.status(404).json({ error: "Racha no encontrada" })
+      await prisma.racha.create({
+        data: {
+          usuarioId: userId,
+          rachaActual: 0,
+          ultimaFecha: new Date(),
+          isInactive: true,
+        },
+      })
     }
     res.status(200).json(racha)
   } catch (error) {
@@ -193,5 +199,5 @@ if (require.main === module) {
   })
 }
 
-module.exports = serverless(app)
-// module.exports = app
+//module.exports = serverless(app)
+module.exports = app
