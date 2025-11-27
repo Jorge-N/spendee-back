@@ -107,7 +107,7 @@ model OAuthCode {
 
 model RefreshToken {
   id        String   @id @default(cuid())
-  tokenHash String
+  tokenHash String   @unique
   userId    String
   expiresAt DateTime
   revoked   Boolean  @default(false)

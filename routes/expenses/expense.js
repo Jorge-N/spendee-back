@@ -65,7 +65,7 @@ router.post("/", validateToken, async (req, res) => {
 router.get("/", validateToken, async (req, res) => {
   try {
     const { month, year, categoryId, limit, order = "asc" } = req.query
-    const  userId  = req.user.user_id
+    const userId = req.user.user_id
 
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })
@@ -190,7 +190,7 @@ router.delete("/:id", validateToken, async (req, res) => {
 router.put("/moveExpensesOfCategory", validateToken, async (req, res) => {
   const { categoriaOrigenId, categoriaDestinoId } = req.body
   try {
-    const uid = req.user.user_id 
+    const uid = req.user.user_id
     if (!categoriaOrigenId || !categoriaDestinoId) {
       return res
         .status(400)

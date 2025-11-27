@@ -4,11 +4,11 @@ const { PrismaClient } = require("@prisma/client")
 const prisma = new PrismaClient()
 const jwt = require("jsonwebtoken")
 const validateToken = require("../middleware/validateToken")
+const fs = require("fs")
+const privateKey = fs.readFileSync("./private.key", "utf8")
 
 const { generateCode, hashCode } = require("../helpers/code")
 const { generateRefreshToken, hashRefreshToken } = require("../helpers/refresh")
-
-const JWT_SECRET = process.env.JWT_SECRET
 
 router.post("/code", validateToken, async (req, res) => {
   try {
@@ -38,6 +38,7 @@ router.post("/code", validateToken, async (req, res) => {
 
 router.post("/token", validateToken, async (req, res) => {
   try {
+    const userId = req.user.user_id
     const { code } = req.body
 
     if (!code) {
@@ -60,8 +61,12 @@ router.post("/token", validateToken, async (req, res) => {
       where: { id: record.id },
       data: { used: true },
     })
-
-    const accessToken = jwt.sign({ sub: record.userId }, JWT_SECRET, {
+    const accessToken = jwt.sign({ user_id: userId }, privateKey, {
+      algorithm: "RS256",
+      issuer: "spendee-back",
+      audience: "spendee-api",
+      keyid: "hola valen",
+      subject: userId,
       expiresIn: "1h",
     })
 
@@ -71,7 +76,7 @@ router.post("/token", validateToken, async (req, res) => {
     await prisma.refreshToken.create({
       data: {
         tokenHash: refreshHash,
-        userId: record.userId,
+        userId: userId,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
       },
     })
@@ -88,17 +93,17 @@ router.post("/token", validateToken, async (req, res) => {
   }
 })
 
-router.post("/refresh", validateToken, async (req, res) => {
+router.post("/refresh", async (req, res) => {
   try {
     const { refresh_token } = req.body
 
     if (!refresh_token) {
-      return res.status(400).json({ error: "Missing refresh_token" })
+      return res.status("400").json({ error: "Missing refresh token" })
     }
 
     const refreshHash = hashRefreshToken(refresh_token)
 
-    const stored = await prisma.refreshToken.findFirst({
+    const stored = await prisma.refreshToken.findUnique({
       where: {
         tokenHash: refreshHash,
         revoked: false,
@@ -109,7 +114,12 @@ router.post("/refresh", validateToken, async (req, res) => {
     if (stored.expiresAt < new Date())
       return res.status(400).json({ error: "Refresh token expired" })
 
-    const newAccess = jwt.sign({ sub: stored.userId }, JWT_SECRET, {
+    const newAccess = jwt.sign({ user_id: stored.userId }, privateKey, {
+      algorithm: "RS256",
+      issuer: "spendee-back",
+      audience: "spendee-api",
+      keyid: "hola valen",
+      subject: stored.userId,
       expiresIn: "1h",
     })
 

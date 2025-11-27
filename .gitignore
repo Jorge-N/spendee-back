@@ -9,3 +9,6 @@ coverage/**/*
 serviceAccountKey.json
 .vercel
 .DS_Store
+
+private.key
+public.key

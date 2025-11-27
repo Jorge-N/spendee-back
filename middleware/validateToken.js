@@ -1,5 +1,7 @@
 const jwt = require("jsonwebtoken")
 const jwksClient = require("jwks-rsa")
+const fs = require("fs")
+const publicKey = fs.readFileSync("./public.key", "utf8")
 
 const client = jwksClient({
   jwksUri:
@@ -21,6 +23,8 @@ function getKey(header, callback) {
 
 async function validateToken(req, res, next) {
   try {
+    const comesFromApi = req.baseUrl === "/api"
+
     const authHeader = req.headers["authorization"]
     const token = authHeader && authHeader.split(" ")[1]
     if (!token) return res.status(401).json({ error: "Token no proporcionado" })
@@ -35,15 +39,19 @@ async function validateToken(req, res, next) {
     }
     jwt.verify(
       token,
-      getKey,
+      comesFromApi ? publicKey : getKey,
       {
         algorithms: ["RS256"],
-        issuer: "https://securetoken.google.com/spendee-7d662",
-        audience: "spendee-7d662",
+        issuer: comesFromApi
+          ? "spendee-back"
+          : "https://securetoken.google.com/spendee-7d662",
+        audience: comesFromApi ? "spendee-api" : "spendee-7d662",
       },
       (err, verifiedPayload) => {
         if (err) {
-          return res.status(403).json({ error: "Token inválido", details: err.message })
+          return res
+            .status(403)
+            .json({ error: "Token inválido", details: err.message })
         }
         req.user = verifiedPayload
         next()
