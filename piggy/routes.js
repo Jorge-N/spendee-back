@@ -106,7 +106,10 @@ router.get("/checkObjective", validateToken, async (req, res) => {
           }),
         )
 
-        const [nuevoObjetivo] = await getRandomObjectives(1)
+        const [nuevoObjetivo] = await getRandomObjectives(
+          1,
+          piggy.objetivos.map((o) => o.objetivoId),
+        )
         updates.push(
           prisma.objetivoUsuario.create({
             data: {

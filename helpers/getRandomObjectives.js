@@ -1,8 +1,12 @@
 const { PrismaClient } = require("@prisma/client")
 const prisma = new PrismaClient()
 
-async function getRandomObjectives(count) {
-  const allObjectives = await prisma.objetivo.findMany()
+async function getRandomObjectives(count, excludeIds = []) {
+  const allObjectives = await prisma.objetivo
+    .findMany()
+    .then((objectives) =>
+      objectives.filter((obj) => !excludeIds.includes(obj.id)),
+    )
 
   if (allObjectives.length < count) {
     throw new Error(
