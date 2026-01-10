@@ -639,3 +639,64 @@ describe("GET /categories (grouping)", () => {
     ])
   })
 })
+
+describe("GET /racha/:userId", () => {
+  let prisma
+  beforeEach(() => {
+    prisma = mockedPrisma
+  })
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+  it("Cuando un usuario tiene una racha, la respuesta debe incluir esa racha", async () => {
+    const rachaMock = [
+      {
+        usuarioId: 123,
+        rachaActual: 3,
+        ultimaFecha: Date("1/1/2001"),
+        isInactiva: false,
+      },
+    ]
+    prisma.racha.findUnique.mockResolvedValue(rachaMock)
+    const res = await request(app).get("/racha/123")
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual([
+      {
+        usuarioId: 123,
+        rachaActual: 3,
+        ultimaFecha: Date("1/1/2001"),
+        isInactiva: false,
+      },
+    ])
+  })
+  it("Cuando un usuario no tiene racha, se debe crear una racha nueva", async () => {
+    const rachaMock = {
+      usuarioId: 123,
+      rachaActual: 0,
+      ultimaFecha: new Date("2026-01-01"),
+      isInactive: true,
+    }
+
+    prisma.racha.findUnique.mockResolvedValue(null)
+    prisma.racha.create.mockResolvedValue(rachaMock)
+
+    const res = await request(app).get("/racha/123")
+    expect(res.statusCode).toBe(200)
+    expect(res.body.usuarioId).toBe(123)
+    expect(res.body.rachaActual).toBe(0)
+    expect(res.body.isInactive).toBe(true)
+  })
+  it("Cuando el userId no es válido, la respuesta debe ser un error 400", async () => {
+    const res = await request(app).get("/racha/abc")
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toEqual({ error: "userId inválido" })
+  })
+  it("Cuando ocurre un error inesperado, devuelve 400 y el mensaje de error", async () => {
+    prisma.racha.findUnique.mockRejectedValue(new Error("DB error"))
+
+    const res = await request(app).get("/racha/123")
+
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toEqual({ error: "DB error" })
+  })
+})
