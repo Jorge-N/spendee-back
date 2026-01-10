@@ -1,4 +1,5 @@
 const request = require("supertest")
+const getRandomObjectives = require("../helpers/getRandomObjectives.js")
 
 jest.mock("@prisma/client", () => {
   const mPrisma = {
@@ -49,6 +50,9 @@ jest.mock("@prisma/client", () => {
       findFirst: jest.fn().mockResolvedValue(null),
       update: jest.fn().mockResolvedValue({}),
       create: jest.fn().mockResolvedValue({}),
+    },
+    objetivo: {
+      findMany: jest.fn().mockResolvedValue([]),
     },
     $queryRaw: jest.fn().mockResolvedValue([]),
   }
@@ -698,5 +702,70 @@ describe("GET /racha/:userId", () => {
 
     expect(res.statusCode).toBe(400)
     expect(res.body).toEqual({ error: "DB error" })
+  })
+})
+
+describe("getRandomObjectives", () => {
+  let prisma
+  beforeEach(() => {
+    prisma = mockedPrisma
+    jest.clearAllMocks()
+  })
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+  it("Debe devolver la cantidad solicitada de objetivos", async () => {
+    prisma.objetivo.findMany.mockResolvedValue([
+      { id: 1 },
+      { id: 2 },
+      { id: 3 },
+      { id: 4 },
+    ])
+
+    const result = await getRandomObjectives(2)
+
+    expect(result).toHaveLength(2)
+  })
+  it("No debe incluir objetivos cuyos ids estén en excludeIds", async () => {
+    prisma.objetivo.findMany.mockResolvedValue([
+      { id: 1 },
+      { id: 2 },
+      { id: 3 },
+    ])
+
+    const result = await getRandomObjectives(2, [2])
+
+    const ids = result.map((o) => o.id)
+    expect(ids).not.toContain(2)
+  })
+  it("Debe lanzar error si no hay suficientes objetivos disponibles", async () => {
+    prisma.objetivo.findMany.mockResolvedValue([{ id: 1 }, { id: 2 }])
+
+    await expect(getRandomObjectives(3)).rejects.toThrow(
+      "No hay suficientes objetivos en la BD",
+    )
+  })
+  it("Debe lanzar error si al excluir ids no quedan suficientes objetivos", async () => {
+    prisma.objetivo.findMany.mockResolvedValue([
+      { id: 1 },
+      { id: 2 },
+      { id: 3 },
+    ])
+
+    await expect(getRandomObjectives(2, [1, 2])).rejects.toThrow(
+      "No hay suficientes objetivos en la BD",
+    )
+  })
+  it("Debe funcionar correctamente con excludeIds vacío", async () => {
+    prisma.objetivo.findMany.mockResolvedValue([{ id: 1 }, { id: 2 }])
+
+    const result = await getRandomObjectives(1, [])
+
+    expect(result).toHaveLength(1)
+  })
+  it("Debe propagar el error si Prisma falla", async () => {
+    prisma.objetivo.findMany.mockRejectedValue(new Error("DB error"))
+
+    await expect(getRandomObjectives(1)).rejects.toThrow("DB error")
   })
 })
