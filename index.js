@@ -152,14 +152,16 @@ app.get("/hasAPISecret", validateToken, async (req, res) => {
 
 app.get("/racha/:userId", validateToken, async (req, res) => {
   const { userId } = req.params
-  if (isNaN(userId)) {
-    return res.status(400).json({ error: "userId inválido" })
-  }
+  // if (isNaN(userId)) {
+  //   return res.status(400).json({ error: "userId inválido" })
+  // }
   try {
-    let racha = await prisma.racha.findUnique({
+    const racha = await prisma.racha.findUnique({
       where: { usuarioId: userId },
     })
+    console.log("Racha encontrada:", racha)
     if (!racha) {
+      console.log("No se encontró racha, creando una nueva con valor 0")
       racha = await prisma.racha.create({
         data: {
           usuarioId: userId,
