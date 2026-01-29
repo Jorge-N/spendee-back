@@ -166,7 +166,11 @@ app.get("/racha/:userId", validateToken, async (req, res) => {
         data: {
           usuarioId: userId,
           rachaActual: 0,
-          ultimaFecha: new Date(),
+          ultimaFecha: (() => {
+            const ayer = new Date()
+            ayer.setDate(ayer.getDate() - 1)
+            return ayer
+          })(),
           isInactive: true,
         },
       })
