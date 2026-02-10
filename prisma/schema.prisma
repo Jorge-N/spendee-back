@@ -1,115 +1,144 @@
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 model Gasto {
-  id            Int        @id @default(autoincrement())
-  usuarioId     String
-  gasto         Float
-  montoAnterior Float
-  fecha         DateTime
-  categoriaId   Int
-  categoria     Categorias @relation(fields: [categoriaId], references: [id])
+    id            Int        @id @default(autoincrement())
+    usuarioId     String
+    gasto         Float
+    montoAnterior Float
+    fecha         DateTime
+    categoriaId   Int
+    categoria     Categorias @relation(fields: [categoriaId], references: [id])
+}
+
+model GastoFijo {
+    id               Int        @id @default(autoincrement())
+    usuarioId        String
+    nombre           String
+    gasto            Decimal
+    diaDeVencimiento Int
+    metodoPago       String?
+    createdAt        DateTime   @default(now())
+    updatedAt        DateTime   @updatedAt
+    categoriaId      Int
+    categoria        Categorias @relation(fields: [categoriaId], references: [id])
+}
+
+enum Frequency {
+    MONTHLY
+    WEEKLY
+    YEARLY
 }
 
 model Ingreso {
-  id            Int      @id @default(autoincrement())
-  usuarioId     String
-  ingreso       Decimal
-  montoAnterior Float
-  fecha         DateTime
+    id            Int      @id @default(autoincrement())
+    usuarioId     String
+    ingreso       Decimal
+    montoAnterior Float
+    fecha         DateTime
+}
+
+model IngresoFijo {
+    id         Int       @id @default(autoincrement())
+    usuarioId  String
+    ingreso    Decimal
+    frecuencia Frequency
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @updatedAt
 }
 
 model Categorias {
-  id          Int                    @id @default(autoincrement())
-  usuarioId   String
-  nombre      String
-  icono       String?
-  color       String?
-  descripcion String?
-  editable    Boolean                @default(true)
-  gastos      Gasto[]
-  presupuesto PresupuestoCategoria[]
+    id          Int                    @id @default(autoincrement())
+    usuarioId   String
+    nombre      String
+    icono       String?
+    color       String?
+    descripcion String?
+    editable    Boolean                @default(true)
+    gastos      Gasto[]
+    presupuesto PresupuestoCategoria[]
+    gastoFijos  GastoFijo[]
 }
 
 model Presupuesto {
-  id                   Int                    @id @default(autoincrement())
-  usuarioId            String
-  monto                Int
-  fechaInicio          DateTime
-  fechaFin             DateTime
-  PresupuestoCategoria PresupuestoCategoria[]
+    id                   Int                    @id @default(autoincrement())
+    usuarioId            String
+    monto                Int
+    fechaInicio          DateTime
+    fechaFin             DateTime
+    PresupuestoCategoria PresupuestoCategoria[]
 }
 
 model PresupuestoCategoria {
-  id            Int         @id @default(autoincrement())
-  presupuestoId Int
-  categoriaId   Int
-  monto         Int
-  presupuesto   Presupuesto @relation(fields: [presupuestoId], references: [id])
-  categoria     Categorias  @relation(fields: [categoriaId], references: [id])
+    id            Int         @id @default(autoincrement())
+    presupuestoId Int
+    categoriaId   Int
+    monto         Int
+    presupuesto   Presupuesto @relation(fields: [presupuestoId], references: [id])
+    categoria     Categorias  @relation(fields: [categoriaId], references: [id])
 }
 
 model Usuario {
-  id          String  @id
-  nombre      String
-  email       String  @unique
-  isDeveloper Boolean @default(false)
-  APISecret   String?
+    id          String  @id
+    nombre      String
+    email       String  @unique
+    isDeveloper Boolean @default(false)
+    APISecret   String?
 }
 
 model Racha {
-  usuarioId   String   @id @unique
-  rachaActual Int
-  ultimaFecha DateTime
-  isInactive  Boolean  @default(true)
+    usuarioId   String   @id @unique
+    rachaActual Int
+    ultimaFecha DateTime
+    isInactive  Boolean  @default(true)
 }
 
 model Piggy {
-  id        String            @id @default(uuid())
-  usuarioId String            @unique
-  nombre    String            @default("Piggy")
-  xp        Int               @default(0)
-  avatarId  Int               @default(0)
-  objetivos ObjetivoUsuario[]
+    id        String            @id @default(uuid())
+    usuarioId String            @unique
+    nombre    String            @default("Piggy")
+    xp        Int               @default(0)
+    avatarId  Int               @default(0)
+    objetivos ObjetivoUsuario[]
 }
 
 model Objetivo {
-  id               Int               @id @default(autoincrement())
-  descripcion      String
-  accion           String
-  maxProgreso      Int
-  objetivoUsuarios ObjetivoUsuario[]
+    id               Int               @id @default(autoincrement())
+    descripcion      String
+    accion           String
+    maxProgreso      Int
+    objetivoUsuarios ObjetivoUsuario[]
 }
 
 model ObjetivoUsuario {
-  id         Int      @id @default(autoincrement())
-  objetivoId Int
-  objetivo   Objetivo @relation(fields: [objetivoId], references: [id])
-  progreso   Int      @default(0)
-  piggy      Piggy?   @relation(fields: [piggyId], references: [id])
-  piggyId    String?
+    id         Int      @id @default(autoincrement())
+    objetivoId Int
+    objetivo   Objetivo @relation(fields: [objetivoId], references: [id])
+    progreso   Int      @default(0)
+    piggy      Piggy?   @relation(fields: [piggyId], references: [id])
+    piggyId    String?
 }
 
 model OAuthCode {
-  id        String   @id @default(cuid())
-  codeHash  String
-  userId    String
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
+    id        String   @id @default(cuid())
+    codeHash  String
+    userId    String
+    expiresAt DateTime
+    used      Boolean  @default(false)
+    createdAt DateTime @default(now())
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
-  userId    String
-  expiresAt DateTime
-  revoked   Boolean  @default(false)
-  createdAt DateTime @default(now())
+    id        String   @id @default(cuid())
+    tokenHash String   @unique
+    userId    String
+    expiresAt DateTime
+    revoked   Boolean  @default(false)
+    createdAt DateTime @default(now())
 }
