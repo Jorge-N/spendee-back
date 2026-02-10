@@ -12,9 +12,6 @@ app.use(express.json())
 const apiRouter = require("./routes/api.js")
 app.use("/api", apiRouter)
 
-const authRouter = require("./routes/auth.js")
-app.use("/auth", authRouter)
-
 const oauthRouter = require("./oauth/routes.js")
 app.use("/oauth", oauthRouter)
 
@@ -27,11 +24,17 @@ app.use("/piggy", piggyRouter)
 const expenseRouter = require("./routes/expenses/expense.js")
 app.use("/expense", expenseRouter)
 
+const fixedExpensesRouter = require("./routes/fixed-expenses/fixed-expense.js")
+app.use("/fixed-expense", fixedExpensesRouter)
+
 const categoryRouter = require("./routes/category/category.js")
 app.use("/categories", categoryRouter)
 
 const incomesRouter = require("./routes/incomes/incomes.js")
 app.use("/income", incomesRouter)
+
+const fixedIncomesRouter = require("./routes/fixed-incomes/fixed-income.js")
+app.use("/fixed-income", fixedIncomesRouter)
 
 const balanceRouter = require("./routes/balance/balance.js")
 app.use("/balance", balanceRouter)
@@ -49,6 +52,21 @@ app.get("/test-jwt", validateToken, (req, res) => {
     usuario: req.usuario,
   })
 })
+
+/* 
+app.get("/ingreso/:userId", validateToken, async (req, res) => {
+  const { userId } = req.params
+  try {
+    const userIncomes = await prisma.ingreso.findMany({
+      where: { usuarioId: userId },
+    })
+    res.status(200).json(userIncomes)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+*/
+
 //get API ID
 app.get("/getApiId", validateToken, async (req, res) => {
   const uid = req.user?.sub || req.user?.user_id || req.user?.uid
@@ -152,14 +170,11 @@ app.get("/hasAPISecret", validateToken, async (req, res) => {
 
 app.get("/racha/:userId", validateToken, async (req, res) => {
   const { userId } = req.params
-  // if (isNaN(userId)) {
-  //   return res.status(400).json({ error: "userId inválido" })
-  // }
   try {
-    const racha = await prisma.racha.findUnique({
+    let racha = await prisma.racha.findUnique({
       where: { usuarioId: userId },
     })
-    console.log("Racha encontrada:", racha)
+
     if (!racha) {
       console.log("No se encontró racha, creando una nueva con valor 0")
       racha = await prisma.racha.create({
@@ -193,19 +208,5 @@ if (require.main === module) {
   })
 }
 
-//module.exports = serverless(app)
+// module.exports = serverless(app)
 module.exports = app
-
-/* 
-app.get("/ingreso/:userId", validateToken, async (req, res) => {
-  const { userId } = req.params
-  try {
-    const userIncomes = await prisma.ingreso.findMany({
-      where: { usuarioId: userId },
-    })
-    res.status(200).json(userIncomes)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
-*/
