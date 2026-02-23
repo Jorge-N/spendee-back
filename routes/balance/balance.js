@@ -8,14 +8,9 @@ const prisma = new PrismaClient()
 
 router.get("/agrupado", validateToken, async (req, res) => {
   try {
-    const {
-      startDate,
-      endDate,
-      groupBy = "month",
-      order = "asc",
-    } = req.query
+    const { startDate, endDate, groupBy = "month", order = "asc" } = req.query
 
-    const userId  = req.user.user_id
+    const userId = req.user.user_id
 
     if (!userId || typeof userId !== "string") {
       return res.status(400).json({ error: "Missing or invalid userId" })
@@ -135,9 +130,9 @@ router.get("/agrupado", validateToken, async (req, res) => {
   }
 })
 
-router.get('/:userId', validateToken, async (req, res) => {
+router.get("/", validateToken, async (req, res) => {
   // Prefer param if provided, otherwise fallback to authenticated user id
-  const userId = req.params.userId || req.user?.user_id
+  const userId = req.user?.user_id
   try {
     const gastoSum = await prisma.gasto.aggregate({
       where: { usuarioId: userId },
@@ -164,4 +159,4 @@ router.get('/:userId', validateToken, async (req, res) => {
   }
 })
 
-module.exports = router 
+module.exports = router
