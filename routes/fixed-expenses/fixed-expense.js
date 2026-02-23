@@ -27,7 +27,9 @@ router.post("/create", validateToken, async (req, res) => {
 
 router.get("/", validateToken, async (req, res) => {
   try {
-    const gastosFijos = await prisma.gastoFijo.findMany()
+    const gastosFijos = await prisma.gastoFijo.findMany({
+      where: { usuarioId: req.user.user_id },
+    })
     res.status(200).json(gastosFijos)
   } catch (error) {
     res.status(400).json({ error: error.message })
