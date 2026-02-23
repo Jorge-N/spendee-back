@@ -162,6 +162,25 @@ router.put("/byId/:id", validateToken, async (req, res) => {
   }
 
   try {
+    const expense = await prisma.gasto.findFirst({
+      where: { id, usuarioId: req.user.user_id },
+    })
+
+    if (!expense) {
+      return res.status(404).json({ error: "Gasto no encontrado" })
+    }
+
+    const categoria = await prisma.categorias.findFirst({
+      where: {
+        id: toCategoryIdInt,
+        OR: [{ usuarioId: req.user.user_id }, { usuarioId: "0" }],
+      },
+    })
+
+    if (!categoria) {
+      return res.status(404).json({ error: "Categoría de destino no válida" })
+    }
+
     await prisma.gasto.update({
       where: { id, usuarioId: req.user.user_id },
       data: { categoriaId: toCategoryIdInt },
@@ -204,7 +223,10 @@ router.put("/moveExpensesOfCategory", validateToken, async (req, res) => {
         where: { id: parseInt(categoriaOrigenId), usuarioId: uid },
       }),
       prisma.categorias.findFirst({
-        where: { id: parseInt(categoriaDestinoId), usuarioId: uid },
+        where: {
+          id: parseInt(categoriaDestinoId),
+          OR: [{ usuarioId: uid }, { usuarioId: "0" }], // Permite categorías del usuario o predeterminadas
+        },
       }),
     ])
     if (!origen) {
@@ -215,7 +237,7 @@ router.put("/moveExpensesOfCategory", validateToken, async (req, res) => {
     if (!destino) {
       return res
         .status(404)
-        .json({ error: "La categoría de destino no existe o no te pertenece." })
+        .json({ error: "La categoría de destino no existe o no es permitida." })
     }
     const resultado = await prisma.gasto.updateMany({
       where: {

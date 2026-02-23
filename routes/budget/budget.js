@@ -146,7 +146,7 @@ router.post("/", validateToken, async (req, res) => {
     const categoriasDelUsuario = await prisma.categorias.findMany({
       where: {
         id: { in: categoriaIds },
-        usuarioId: usuarioId,
+        OR: [{ usuarioId: usuarioId }, { usuarioId: "0" }],
       },
       select: { id: true },
     })
