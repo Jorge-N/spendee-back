@@ -10,7 +10,10 @@ router.post("/customCategory", validateToken, async (req, res) => {
   console.log("Creando categoría personalizada")
   const { nombre, icono, color, descripcion } = req.body
   try {
-    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
+    const uid = req.user.user_id
+    if (!uid) {
+      return res.status(401).json({ error: "Unauthorized: No user ID found" })
+    }
     const nuevaCategoria = await prisma.categorias.create({
       data: {
         usuarioId: uid,
@@ -29,7 +32,10 @@ router.post("/customCategory", validateToken, async (req, res) => {
 router.get("/", validateToken, async (req, res) => {
   const { month, year } = req.query
   try {
-    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
+    const uid = req.user.user_id
+    if (!uid) {
+      return res.status(401).json({ error: "Unauthorized: No user ID found" })
+    }
 
     const categorias = await prisma.categorias.findMany({
       where: { OR: [{ usuarioId: "0" }, { usuarioId: uid }] },
@@ -89,7 +95,10 @@ router.delete("/delete/:id", validateToken, async (req, res) => {
   const { id } = req.params
   console.log("Eliminando categoría con ID:", id)
   try {
-    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
+    const uid = req.user.user_id
+    if (!uid) {
+      return res.status(401).json({ error: "Unauthorized: No user ID found" })
+    }
 
     const category = await prisma.categorias.findUnique({
       where: { id: Number(id), usuarioId: uid },
@@ -126,7 +135,10 @@ router.put("/modify/:id", validateToken, async (req, res) => {
   const { categoria, descripcion, icono, color } = req.body
 
   try {
-    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
+    const uid = req.user.user_id
+    if (!uid) {
+      return res.status(401).json({ error: "Unauthorized: No user ID found" })
+    }
     const categoriaExistente = await prisma.categorias.findUnique({
       where: { id: parseInt(id) },
     })

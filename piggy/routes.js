@@ -7,7 +7,10 @@ const validateToken = require("../middleware/validateToken")
 const prisma = new PrismaClient()
 
 router.get("/", validateToken, async (req, res) => {
-  const userId = req.user?.sub || req.user?.user_id || req.user?.uid
+  const userId = req.user.user_id
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized: No user ID found" })
+  }
   const randomObjectives = await getRandomObjectives(3)
   try {
     const piggy = await prisma.piggy.upsert({
@@ -32,7 +35,10 @@ router.get("/", validateToken, async (req, res) => {
 })
 
 router.put("/updatePiggy", validateToken, async (req, res) => {
-  const userId = req.user?.sub || req.user?.user_id || req.user?.uid
+  const userId = req.user.user_id
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized: No user ID found" })
+  }
   const { nombre } = req.body
   try {
     const updatedPiggy = await prisma.piggy.updateMany({
@@ -46,7 +52,10 @@ router.put("/updatePiggy", validateToken, async (req, res) => {
 })
 
 router.get("/checkObjective", validateToken, async (req, res) => {
-  const userId = req.user?.sub || req.user?.user_id || req.user?.uid
+  const userId = req.user.user_id
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized: No user ID found" })
+  }
   const { action } = req.query
 
   if (!action) {
@@ -131,7 +140,10 @@ router.get("/checkObjective", validateToken, async (req, res) => {
 })
 
 router.put("/updateAvatar", validateToken, async (req, res) => {
-  const userId = req.user?.sub || req.user?.user_id || req.user?.uid
+  const userId = req.user.user_id
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized: No user ID found" })
+  }
   const { avatarId } = req.body
   try {
     const updatedPiggy = await prisma.piggy.update({

@@ -69,21 +69,24 @@ app.get("/ingreso/:userId", validateToken, async (req, res) => {
 
 //get API ID
 app.get("/getApiId", validateToken, async (req, res) => {
-  const uid = req.user?.sub || req.user?.user_id || req.user?.uid
+  const uid = req.user.user_id
+  if (!uid) {
+    return res.status(401).json({ error: "Unauthorized: No user ID found" })
+  }
   console.log("Obteniendo API User ID:", uid)
   res.json({ apiId: uid })
 })
 
 //Generar API Secret
 app.post("/generateApiSecret", validateToken, async (req, res) => {
-  // Extraer identificadores desde el token (compatible con distintos claim names de Firebase)
-  const uid = req.usuario?.sub || req.usuario?.user_id || req.usuario?.uid
-  const email = req.usuario?.email
-  const nombre = req.usuario?.name || req.usuario?.displayName || ""
+  // Extraer identificador desde el token
+  const uid = req.user.user_id
+  const email = req.user?.email
+  const nombre = req.user?.name || req.user?.displayName || ""
 
   if (!uid) {
-    return res.status(400).json({
-      error: "No se pudo obtener el identificador del usuario del token",
+    return res.status(401).json({
+      error: "Unauthorized: No user ID found",
     })
   }
 
@@ -127,10 +130,10 @@ app.post("/generateApiSecret", validateToken, async (req, res) => {
 
 app.delete("/deleteApiSecret", validateToken, async (req, res) => {
   console.log("Eliminando API Secret del usuario")
-  const uid = req.user?.sub || req.user?.user_id || req.user?.uid
+  const uid = req.user.user_id
   if (!uid) {
-    return res.status(400).json({
-      error: "No se pudo obtener el identificador del usuario del token",
+    return res.status(401).json({
+      error: "Unauthorized: No user ID found",
     })
   }
   try {
@@ -148,11 +151,11 @@ app.delete("/deleteApiSecret", validateToken, async (req, res) => {
 
 app.get("/hasAPISecret", validateToken, async (req, res) => {
   console.log("Verificando si el usuario tiene API Secret")
-  const uid = req.user?.sub || req.user?.user_id || req.user?.uid
+  const uid = req.user.user_id
 
   if (!uid) {
-    return res.status(400).json({
-      error: "No se pudo obtener el identificador del usuario del token",
+    return res.status(401).json({
+      error: "Unauthorized: No user ID found",
     })
   }
   try {

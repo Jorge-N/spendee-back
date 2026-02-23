@@ -14,7 +14,7 @@ function verifyCronToken(req, res, next) {
   next()
 }
 
-router.get("/", (req, res) => {
+router.get("/", verifyCronToken, (req, res) => {
   res.json({ message: "Cron endpoint is working" })
 })
 
