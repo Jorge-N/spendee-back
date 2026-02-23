@@ -131,8 +131,7 @@ router.get("/agrupado", validateToken, async (req, res) => {
 })
 
 router.get("/", validateToken, async (req, res) => {
-  // Prefer param if provided, otherwise fallback to authenticated user id
-  const userId = req.user?.user_id
+  const userId = req.user.user_id
   try {
     const gastoSum = await prisma.gasto.aggregate({
       where: { usuarioId: userId },

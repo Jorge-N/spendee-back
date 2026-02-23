@@ -102,7 +102,7 @@ router.get("/grouped", validateToken, async (req, res) => {
     const userId = req.user.user_id
 
     if (!userId || typeof userId !== "string") {
-      return res.status(400).json({ error: "Missing or invalid userId"})
+      return res.status(400).json({ error: "Missing or invalid userId" })
     }
 
     const groupedIncomes = await prisma.$queryRaw`
@@ -139,7 +139,7 @@ router.get("/byId/:id", validateToken, async (req, res) => {
 
   try {
     const income = await prisma.ingreso.findUnique({
-      where: { id },
+      where: { id, usuarioId: req.user.user_id },
     })
     if (!income) return res.status(404).json({ error: "Ingreso no encontrado" })
     res.status(200).json(income)
