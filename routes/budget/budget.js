@@ -140,6 +140,23 @@ router.post("/", validateToken, async (req, res) => {
   const fechaInicioT = truncateToDate(fechaInicio)
   const fechaFinT = truncateToDate(fechaFin)
   try {
+    const categoriaIds = PresupuestoCategoria.map((cat) =>
+      parseInt(cat.categoriaId),
+    )
+    const categoriasDelUsuario = await prisma.categorias.findMany({
+      where: {
+        id: { in: categoriaIds },
+        usuarioId: usuarioId,
+      },
+      select: { id: true },
+    })
+
+    if (categoriasDelUsuario.length !== categoriaIds.length) {
+      return res.status(403).json({
+        error: "Una o más categorías no te pertenecen o no existen",
+      })
+    }
+
     const newBudget = await prisma.presupuesto.create({
       data: {
         usuarioId,

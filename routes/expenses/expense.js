@@ -204,7 +204,7 @@ router.put("/moveExpensesOfCategory", validateToken, async (req, res) => {
         where: { id: parseInt(categoriaOrigenId), usuarioId: uid },
       }),
       prisma.categorias.findFirst({
-        where: { id: parseInt(categoriaDestinoId) },
+        where: { id: parseInt(categoriaDestinoId), usuarioId: uid },
       }),
     ])
     if (!origen) {
