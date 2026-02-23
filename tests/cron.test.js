@@ -34,12 +34,19 @@ describe("Cron routes", () => {
 
   describe("GET /cron", () => {
     it("deberia responder que el endpoint está funcionando", async () => {
-      const res = await request(app).get("/cron")
+      const res = await request(app)
+        .get("/cron")
+        .set("Authorization", "Bearer super-secret-cron")
 
       expect(res.status).toBe(200)
       expect(res.body).toEqual({
         message: "Cron endpoint is working",
       })
+    })
+
+    it("deberia fallar si no se envia el token en el GET", async () => {
+      const res = await request(app).get("/cron")
+      expect(res.status).toBe(401)
     })
   })
 

@@ -24,7 +24,7 @@ jest.mock("@prisma/client", () => {
 
 jest.mock("../middleware/validateToken", () =>
   jest.fn((req, _res, next) => {
-    req.user = { sub: "user-123" }
+    req.user = { user_id: "user-123" }
     next()
   }),
 )
@@ -32,11 +32,10 @@ jest.mock("../middleware/validateToken", () =>
 jest.mock("../helpers/getRandomObjectives", () => jest.fn())
 
 const getRandomObjectives = require("../helpers/getRandomObjectives")
-const piggyRouter = require("../piggy/routes") // ajustá el path si hace falta
+const piggyRouter = require("../piggy/routes")
 const { PrismaClient } = require("@prisma/client")
 
 const prisma = new PrismaClient()
-
 const app = express()
 app.use(express.json())
 app.use("/piggy", piggyRouter)
@@ -92,7 +91,6 @@ describe("Piggy routes", () => {
   describe("GET /piggy/checkObjective", () => {
     it("deberia devolver 400 si falta la acción", async () => {
       const res = await request(app).get("/piggy/checkObjective")
-
       expect(res.status).toBe(400)
     })
 
@@ -135,15 +133,15 @@ describe("Piggy routes", () => {
       })
 
       getRandomObjectives.mockResolvedValue([{ id: 99 }])
-      prisma.$transaction.mockResolvedValue()
+      prisma.$transaction.mockResolvedValue([])
 
       const res = await request(app)
         .get("/piggy/checkObjective")
         .query({ action: "SAVE" })
 
       expect(res.status).toBe(200)
-      expect(prisma.$transaction).toHaveBeenCalled()
       expect(res.body.updated).toBe(true)
+      expect(prisma.$transaction).toHaveBeenCalled()
     })
   })
 

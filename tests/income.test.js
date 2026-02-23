@@ -143,18 +143,24 @@ describe("Ingreso routes", () => {
 
   describe("GET /ingreso/grouped", () => {
     it("deberia devolver ingresos agrupados por mes", async () => {
-      prisma.$queryRaw.mockResolvedValue([
+      prisma.ingreso.findMany.mockResolvedValue([
         {
-          month: "2024-05",
-          items: [{ id: 1, ingreso: 1000 }],
+          id: 1,
+          ingreso: 1000,
+          usuarioId: "user-test-123",
+          montoAnterior: 500,
+          fecha: new Date("2024-05-10"),
         },
       ])
 
       const res = await request(app).get("/ingreso/grouped")
 
       expect(res.status).toBe(200)
-      expect(prisma.$queryRaw).toHaveBeenCalled()
+      expect(prisma.ingreso.findMany).toHaveBeenCalled()
+
       expect(res.body[0].month).toBe("2024-05")
+      expect(res.body[0].items).toHaveLength(1)
+      expect(res.body[0].items[0].ingreso).toBe(1000)
     })
   })
 

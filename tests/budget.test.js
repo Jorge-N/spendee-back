@@ -18,6 +18,9 @@ jest.mock("@prisma/client", () => {
     gasto: {
       groupBy: jest.fn(),
     },
+    categorias: {
+      findMany: jest.fn(),
+    },
   }
 
   return {
@@ -98,6 +101,8 @@ describe("Budget routes", () => {
 
   describe("POST /budget", () => {
     it("deberia crear un nuevo presupuesto", async () => {
+      prisma.categorias.findMany.mockResolvedValue([{ id: 1 }, { id: 2 }])
+
       prisma.presupuesto.create.mockResolvedValue({ id: 10 })
 
       const res = await request(app)
@@ -113,6 +118,7 @@ describe("Budget routes", () => {
         })
 
       expect(res.status).toBe(201)
+      expect(prisma.categorias.findMany).toHaveBeenCalled()
       expect(prisma.presupuesto.create).toHaveBeenCalled()
       expect(truncateToDate).toHaveBeenCalled()
     })

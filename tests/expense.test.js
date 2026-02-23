@@ -134,12 +134,23 @@ describe("Expenses routes", () => {
 
   describe("GET /expenses/grouped", () => {
     it("deberia retornar los gastos agrupados por mes", async () => {
-      prisma.$queryRaw.mockResolvedValue([{ month: "2024-01", items: [] }])
+      prisma.gasto.findMany.mockResolvedValue([
+        {
+          id: 1,
+          gasto: 100,
+          fecha: new Date("2024-01-15"),
+          usuarioId: "user-123",
+          montoAnterior: 90,
+          categoriaId: 1,
+        },
+      ])
 
       const res = await request(app).get("/expenses/grouped")
 
       expect(res.status).toBe(200)
-      expect(prisma.$queryRaw).toHaveBeenCalled()
+      expect(prisma.gasto.findMany).toHaveBeenCalled()
+      expect(res.body[0].month).toBe("2024-01")
+      expect(res.body[0].items).toHaveLength(1)
     })
   })
 
@@ -170,14 +181,25 @@ describe("Expenses routes", () => {
 
   describe("PUT /expenses/byId/:id", () => {
     it("deberia actualizar la categoria del gasto", async () => {
-      prisma.gasto.update.mockResolvedValue({})
+      prisma.gasto.findFirst.mockResolvedValue({ id: 5, usuarioId: "user-123" })
+      prisma.categorias.findFirst.mockResolvedValue({
+        id: 2,
+        usuarioId: "user-123",
+      })
+      prisma.gasto.update.mockResolvedValue({ id: 5, categoriaId: 2 })
 
       const res = await request(app)
         .put("/expenses/byId/5")
         .send({ toCategoryId: 2 })
 
       expect(res.status).toBe(200)
-      expect(prisma.gasto.update).toHaveBeenCalled()
+      expect(res.body.message).toBe("Categoría del gasto actualizada")
+      expect(prisma.gasto.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 5, usuarioId: "user-123" },
+          data: { categoriaId: 2 },
+        }),
+      )
     })
   })
 
