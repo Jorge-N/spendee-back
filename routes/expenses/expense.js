@@ -105,25 +105,28 @@ router.get("/grouped", validateToken, async (req, res) => {
       return res.status(400).json({ error: "Missing or invalid userId" })
     }
 
-    const groupedExpenses = await prisma.$queryRaw`
-      SELECT 
-        TO_CHAR("fecha", 'YYYY-MM') AS month,
-        json_agg(
-          json_build_object(
-            'id', "id",
-            'usuarioId', "usuarioId",
-            'gasto', "gasto",
-            'fecha', "fecha",
-            'montoAnterior', "montoAnterior",
-            'categoriaId', "categoriaId"
-          )
-          ORDER BY "fecha" DESC
-        ) AS items
-      FROM "Gasto"
-      WHERE "usuarioId" = ${userId}
-      GROUP BY month
-      ORDER BY month DESC;
-    `
+    const gastos = await prisma.gasto.findMany({
+      where: { usuarioId: userId },
+      orderBy: { fecha: "desc" },
+    })
+
+    const grouped = gastos.reduce((acc, gasto) => {
+      const month = gasto.fecha.toISOString().slice(0, 7)
+      if (!acc[month]) {
+        acc[month] = { month, items: [] }
+      }
+      acc[month].items.push({
+        id: gasto.id,
+        usuarioId: gasto.usuarioId,
+        gasto: gasto.gasto,
+        fecha: gasto.fecha,
+        montoAnterior: gasto.montoAnterior,
+        categoriaId: gasto.categoriaId,
+      })
+      return acc
+    }, {})
+
+    const groupedExpenses = Object.values(grouped)
 
     res.json(groupedExpenses)
   } catch (error) {
