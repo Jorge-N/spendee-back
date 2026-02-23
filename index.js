@@ -168,8 +168,8 @@ app.get("/hasAPISecret", validateToken, async (req, res) => {
   }
 })
 
-app.get("/racha/:userId", validateToken, async (req, res) => {
-  const { userId } = req.params
+app.get("/racha", validateToken, async (req, res) => {
+  const userId = req.user.user_id
   try {
     let racha = await prisma.racha.findUnique({
       where: { usuarioId: userId },
